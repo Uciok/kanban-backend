@@ -59,7 +59,7 @@ export const ChatSidebar = ({
   return (
     <aside
       hidden={!isOpen}
-      className="fixed inset-y-0 right-0 z-20 flex w-full max-w-[340px] flex-col border-l border-[var(--stroke)] bg-white shadow-[var(--shadow)]"
+      className="fixed inset-y-0 right-0 z-20 flex w-full flex-col sm:max-w-[340px] border-l border-[var(--stroke)] bg-white shadow-[var(--shadow)]"
       aria-label="AI chat"
     >
       <header className="flex items-center justify-between border-b border-[var(--stroke)] px-6 py-5">
@@ -124,7 +124,7 @@ export const ChatSidebar = ({
           aria-label="Message"
           placeholder="Message the assistant"
           rows={3}
-          className="w-full resize-none rounded-xl border border-[var(--stroke)] px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+          className="w-full resize-none rounded-xl border border-[var(--stroke)] px-3 py-2 text-base sm:text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
         />
         <button
           type="submit"

@@ -5,7 +5,8 @@ import clsx from "clsx";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   closestCorners,
@@ -30,8 +31,12 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
   const [isLocked, setIsLocked] = useState(false);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: { distance: 6 },
+    }),
+    // Touch: press and hold to drag, so a normal swipe still scrolls
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
     })
   );
 
@@ -125,23 +130,23 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
       <div className="pointer-events-none absolute left-0 top-0 h-[420px] w-[420px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,_rgba(32,157,215,0.25)_0%,_rgba(32,157,215,0.05)_55%,_transparent_70%)]" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-[520px] w-[520px] translate-x-1/4 translate-y-1/4 rounded-full bg-[radial-gradient(circle,_rgba(117,57,145,0.18)_0%,_rgba(117,57,145,0.05)_55%,_transparent_75%)]" />
 
-      <main className="relative mx-auto flex min-h-screen max-w-[1500px] flex-col gap-10 px-6 pb-16 pt-12">
-        <header className="flex flex-col gap-6 rounded-[32px] border border-[var(--stroke)] bg-white/80 p-8 shadow-[var(--shadow)] backdrop-blur">
-          <div className="flex flex-wrap items-start justify-between gap-6">
+      <main className="relative mx-auto flex min-h-screen max-w-[1500px] flex-col gap-4 px-4 pb-8 pt-4 lg:gap-10 lg:px-6 lg:pb-16 lg:pt-12">
+        <header className="flex flex-col gap-6 rounded-3xl border border-[var(--stroke)] bg-white/80 p-4 shadow-[var(--shadow)] backdrop-blur lg:rounded-[32px] lg:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 lg:items-start lg:gap-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--gray-text)]">
+              <p className="hidden text-xs font-semibold uppercase tracking-[0.35em] text-[var(--gray-text)] lg:block">
                 Single Board Kanban
               </p>
-              <h1 className="mt-3 font-display text-4xl font-semibold text-[var(--navy-dark)]">
+              <h1 className="font-display text-2xl font-semibold text-[var(--navy-dark)] lg:mt-3 lg:text-4xl">
                 Kanban Studio
               </h1>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--gray-text)]">
+              <p className="mt-3 hidden max-w-xl text-sm leading-6 text-[var(--gray-text)] lg:block">
                 Keep momentum visible. Rename columns, drag cards between stages,
                 and capture quick notes without getting buried in settings.
               </p>
             </div>
-            <div className="flex items-start gap-4">
-              <div className="rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-5 py-4">
+            <div className="flex items-center gap-2 lg:items-start lg:gap-4">
+              <div className="hidden rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-5 py-4 lg:block">
                 <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--gray-text)]">
                   Focus
                 </p>
@@ -165,7 +170,7 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
               </button>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="hidden flex-wrap items-center gap-4 lg:flex">
             {board.columns.map((column) => (
               <div
                 key={column.id}
@@ -189,7 +194,8 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <section className="grid gap-6 lg:grid-cols-5">
+            {/* Phones: one column per screen, swiped sideways. Large screens: five columns side by side */}
+            <section className="-mx-4 grid snap-x snap-mandatory auto-cols-[85%] grid-flow-col gap-4 overflow-x-auto px-4 pb-2 sm:auto-cols-[45%] lg:mx-0 lg:snap-none lg:grid-flow-row lg:grid-cols-5 lg:gap-6 lg:overflow-visible lg:px-0">
               {board.columns.map((column) => (
                 <KanbanColumn
                   key={column.id}

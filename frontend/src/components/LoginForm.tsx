@@ -39,7 +39,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
           aria-label="Username"
           placeholder="Username"
           autoComplete="username"
-          className="w-full rounded-xl border border-[var(--stroke)] px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+          className="w-full rounded-xl border border-[var(--stroke)] px-3 py-2 text-base sm:text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
           required
         />
         <input
@@ -49,7 +49,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
           aria-label="Password"
           placeholder="Password"
           autoComplete="current-password"
-          className="w-full rounded-xl border border-[var(--stroke)] px-3 py-2 text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+          className="w-full rounded-xl border border-[var(--stroke)] px-3 py-2 text-base sm:text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
           required
         />
         {error && (

@@ -44,6 +44,8 @@ export const KanbanCard = ({ card, onDelete, onEdit }: KanbanCardProps) => {
       style={style}
       className={clsx(
         "rounded-2xl border border-transparent bg-white px-4 py-4 shadow-[0_12px_24px_rgba(3,33,71,0.08)]",
+        // No text selection or iOS callout on the long press that starts a drag
+        "select-none [-webkit-touch-callout:none]",
         "transition-all duration-150",
         isDragging && "opacity-60 shadow-[0_18px_32px_rgba(3,33,71,0.16)]"
       )}
@@ -56,7 +58,7 @@ export const KanbanCard = ({ card, onDelete, onEdit }: KanbanCardProps) => {
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             aria-label="Card title"
-            className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+            className="w-full rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-base sm:text-sm font-medium text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
             required
           />
           <textarea
@@ -64,7 +66,7 @@ export const KanbanCard = ({ card, onDelete, onEdit }: KanbanCardProps) => {
             onChange={(event) => setDetails(event.target.value)}
             aria-label="Card details"
             rows={3}
-            className="w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-sm text-[var(--gray-text)] outline-none transition focus:border-[var(--primary-blue)]"
+            className="w-full resize-none rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-base sm:text-sm text-[var(--gray-text)] outline-none transition focus:border-[var(--primary-blue)]"
           />
           <div className="flex items-center gap-2">
             <button
@@ -96,7 +98,7 @@ export const KanbanCard = ({ card, onDelete, onEdit }: KanbanCardProps) => {
             <button
               type="button"
               onClick={startEditing}
-              className="rounded-full border border-transparent px-2 py-1 text-xs font-semibold text-[var(--primary-blue)] transition hover:border-[var(--stroke)]"
+              className="rounded-full border border-transparent px-3 py-2 text-xs font-semibold text-[var(--primary-blue)] lg:px-2 lg:py-1 transition hover:border-[var(--stroke)]"
               aria-label={`Edit ${card.title}`}
             >
               Edit
@@ -104,7 +106,7 @@ export const KanbanCard = ({ card, onDelete, onEdit }: KanbanCardProps) => {
             <button
               type="button"
               onClick={() => onDelete(card.id)}
-              className="rounded-full border border-transparent px-2 py-1 text-xs font-semibold text-[var(--gray-text)] transition hover:border-[var(--stroke)] hover:text-[var(--navy-dark)]"
+              className="rounded-full border border-transparent px-3 py-2 text-xs font-semibold text-[var(--gray-text)] lg:px-2 lg:py-1 transition hover:border-[var(--stroke)] hover:text-[var(--navy-dark)]"
               aria-label={`Delete ${card.title}`}
             >
               Remove

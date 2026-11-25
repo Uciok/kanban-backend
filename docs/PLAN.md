@@ -36,6 +36,12 @@ Testing
 - E2E: Playwright against the running container (`localhost:8000`). Tests share the real database, so each resets the board first (`signInWithFreshBoard`) and they run with one worker. Running them resets your board
 - Coverage: aim for 80% (backend via `pytest-cov`, frontend via `vitest --coverage`) where it comes naturally. Only write tests that check real behavior; never add tests just to raise the number. Falling short of 80% is fine
 
+Mobile first
+- Phones: compact header (title, AI chat, Log out); description, Focus box and column chips only on `lg`. Columns scroll sideways, one per screen (85% width, scroll snap; two per screen from `sm`); five side by side from `lg`
+- Drag and drop: `MouseSensor` (6px) for mouse, `TouchSensor` (press and hold 200ms) for touch so a normal swipe still scrolls; dragging to the edge auto-scrolls to the next column. Cards disable text selection and the iOS long-press callout
+- Chat is full screen on phones, a 340px panel from `sm`
+- Inputs use 16px text on phones (`text-base sm:text-sm`) so iOS does not zoom in on focus; card buttons have larger tap targets below `lg`
+
 Frontend details worth knowing
 - Cards can be edited inline (Edit button). While editing, the card does not get dnd-kit's drag attributes, otherwise its `aria-disabled` disables the inputs
 - Cards have `role="button"` from dnd-kit with the child button labels in their accessible name, so tests match buttons by exact name. Next.js adds a hidden route announcer with `role="alert"`, so tests do not select by that role
@@ -185,3 +191,13 @@ Risk: not every OpenRouter provider (or fallback model) supports structured outp
 - [ ] Manual check with the real model
 
 Success: user can chat with the AI and see board changes appear without reloading; all tests pass.
+
+## Part 11: Mobile first
+
+- [x] Compact header and sideways-scrolling columns on phones; desktop layout unchanged
+- [x] Touch drag and drop (press and hold), checked with emulated touch in Chrome
+- [x] Full-screen chat on phones; 16px inputs; larger tap targets
+- [x] E2E `mobile` Playwright project (Pixel 7) with `tests/mobile.spec.ts`: board on the first screen, one column per screen with sideways scroll, chat full screen with 16px input
+- [ ] User checks on a real phone
+
+Success: the app is comfortable to use on a phone; all tests pass.
