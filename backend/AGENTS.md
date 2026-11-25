@@ -2,15 +2,20 @@
 
 FastAPI app managed with uv (Python 3.13).
 
-- `app/main.py` - app, API routes under `/api`, static files mounted at `/` (mounted last so API routes win)
+- `app/main.py` - app, API routes under `/api`, static files mounted at `/` (mounted last so API routes win). Creates the db on startup (lifespan)
+- `app/db.py` - SQLite (stdlib `sqlite3`): `init_db`, `get_board` (creates the default board on first read), `save_board`. Path from `DB_PATH`, default `data/app.db`. See `docs/DATABASE.md`
+- `app/models.py` - Pydantic `Board` / `Column` / `Card`, same shape as the frontend `BoardData`
+- `app/default_board.json` - board given to new users
 - `static/` - files served at `/`. Not in git: the Dockerfile copies the Next export (`frontend/out`) here. To serve the frontend outside Docker, copy `frontend/out` to `backend/static`
-- `tests/` - pytest, using FastAPI `TestClient`
+- `tests/` - pytest, using FastAPI `TestClient`. `conftest.py` points `DB_PATH` at a temp file per test and has `client` / `signed_in` fixtures
 
 Routes:
 - `GET /api/health` -> `{"status": "ok"}`
 - `POST /api/auth/login` `{username, password}` -> `{username}` and sets the session cookie; 401 on bad credentials (hardcoded `user` / `password`)
 - `POST /api/auth/logout` -> clears the session
 - `GET /api/auth/me` -> `{username}` or 401
+- `GET /api/board` -> the user's board (401 if signed out)
+- `PUT /api/board` full board -> saves and returns it (422 if invalid)
 
 Auth: Starlette `SessionMiddleware` (signed cookie). Secret from `SESSION_SECRET`, random per start if unset (sessions then end on restart). Protect routes with `Depends(current_user)`.
 

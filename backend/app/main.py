@@ -1,5 +1,6 @@
 import os
 import secrets
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -7,11 +8,21 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 
+from app import db
+from app.models import Board
+
 STATIC_DIR = Path(__file__).parent.parent / "static"
 USERNAME = "user"
 PASSWORD = "password"
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db.init_db(USERNAME)
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.environ.get("SESSION_SECRET") or secrets.token_hex(32),
@@ -52,6 +63,17 @@ def logout(request: Request):
 @app.get("/api/auth/me")
 def me(username: str = Depends(current_user)):
     return {"username": username}
+
+
+@app.get("/api/board")
+def read_board(username: str = Depends(current_user)) -> Board:
+    return Board.model_validate(db.get_board(username))
+
+
+@app.put("/api/board")
+def write_board(board: Board, username: str = Depends(current_user)) -> Board:
+    db.save_board(username, board.model_dump())
+    return board
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True, check_dir=False), name="static")

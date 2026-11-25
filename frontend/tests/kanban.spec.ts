@@ -1,9 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { signIn } from "./helpers";
+import { signInWithFreshBoard } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
-  await signIn(page);
-  await expect(page.getByRole("heading", { name: "Kanban Studio" })).toBeVisible();
+  await signInWithFreshBoard(page);
 });
 
 test("loads the kanban board", async ({ page }) => {

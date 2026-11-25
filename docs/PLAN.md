@@ -80,35 +80,36 @@ Success: board is only reachable after login; all tests pass.
 
 ## Part 5: Database modeling
 
-- [ ] Write `docs/DATABASE.md` with schema and approach:
+- [x] Write `docs/DATABASE.md` with schema and approach:
   - `users (id INTEGER PK, username TEXT UNIQUE, created_at)`
   - `boards (id INTEGER PK, user_id INTEGER UNIQUE FK, data TEXT JSON, updated_at)`
   - `data` holds `BoardData` JSON; new users get the default board (the current `initialData`)
   - `user` is seeded on startup; passwords stay hardcoded for the MVP
-- [ ] Example board JSON in the doc
-- [ ] User sign-off
+- [x] Example board JSON in the doc
+- [x] User sign-off
 
 Success: user approves the schema.
 
 ## Part 6: Backend
 
-- [ ] `app/db.py`: create db and tables if missing, seed `user`, get board (create default if none), save board
-- [ ] Pydantic models for `BoardData`
-- [ ] `GET /api/board` returns the signed-in user's board
-- [ ] `PUT /api/board` validates and saves the full board
-- [ ] DB path configurable (`DB_PATH`) so tests use a temp file
-- [ ] Tests: db created when missing; default board on first read; save then read round-trips; invalid payload rejected (422); unauthenticated requests rejected (401); boards are isolated per user
+- [x] `app/db.py`: create db and tables if missing, seed `user`, get board (create default if none), save board
+- [x] Pydantic models for `BoardData`
+- [x] `GET /api/board` returns the signed-in user's board
+- [x] `PUT /api/board` validates and saves the full board
+- [x] DB path configurable (`DB_PATH`) so tests use a temp file
+- [x] Tests: db created when missing; default board on first read; save then read round-trips; invalid payload rejected (422); unauthenticated requests rejected (401); boards are isolated per user
 
 Success: all backend tests pass; data survives container restart (volume).
 
 ## Part 7: Frontend + Backend
 
-- [ ] `src/lib/api.ts`: `getBoard`, `saveBoard`
-- [ ] Board loads from the API after login (loading state while fetching)
-- [ ] Every change (move, add, edit, delete) saves the full board; column rename saves on blur
-- [ ] Remove `initialData` from the frontend (default board now comes from the backend)
-- [ ] Unit tests with `fetch` mocked: loads board, saves after each kind of change
-- [ ] E2E: each change persists across reload; data persists across container restart
+- [x] `src/lib/api.ts`: `getBoard`, `saveBoard`
+- [x] Board loads from the API after login (loading state while fetching)
+- [x] Every change (move, add, edit, delete) saves the full board; column rename saves on blur
+- [x] Remove `initialData` from the frontend (default board now comes from the backend)
+- [x] Unit tests with `fetch` mocked: loads board, saves after each kind of change
+- [x] E2E: each change persists across reload and logout (tests reset the board first and run one at a time)
+- [ ] User verifies: changes survive logout and a container restart (`stop.sh` + `start.sh`)
 
 Success: the board is fully persistent; all tests pass.
 
