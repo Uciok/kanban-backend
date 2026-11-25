@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 
-from app import db
+from app import ai, db
 from app.models import Board
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -74,6 +74,11 @@ def read_board(username: str = Depends(current_user)) -> Board:
 def write_board(board: Board, username: str = Depends(current_user)) -> Board:
     db.save_board(username, board.model_dump())
     return board
+
+
+@app.post("/api/ai/test")
+def ai_test(username: str = Depends(current_user)):
+    return {"answer": ai.ask("What is 2+2? Reply with just the number.")}
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True, check_dir=False), name="static")

@@ -109,16 +109,17 @@ Success: all backend tests pass; data survives container restart (volume).
 - [x] Remove `initialData` from the frontend (default board now comes from the backend)
 - [x] Unit tests with `fetch` mocked: loads board, saves after each kind of change
 - [x] E2E: each change persists across reload and logout (tests reset the board first and run one at a time)
-- [ ] User verifies: changes survive logout and a container restart (`stop.sh` + `start.sh`)
+- [x] User verifies: changes survive logout and a container restart (`stop.sh` + `start.sh`)
 
 Success: the board is fully persistent; all tests pass.
 
 ## Part 8: AI connectivity
 
-- [ ] Add `openai` SDK; `app/ai.py` client with OpenRouter base URL, key from `OPENROUTER_API_KEY`, model `openai/gpt-oss-120b`
-- [ ] `POST /api/ai/test` (signed in) sends "What is 2+2?" and returns the answer
-- [ ] Backend test with the client mocked
-- [ ] Manual check against the real API, answer contains 4
+- [x] Add `openai` SDK; `app/ai.py` client with OpenRouter base URL, key from `OPENROUTER_API_KEY`, model `openai/gpt-oss-120b`
+- [x] Optional fallbacks from `OPENROUTER_FALLBACK_MODELS` (comma-separated), sent as OpenRouter's `models` list after the main model
+- [x] `POST /api/ai/test` (signed in) sends "What is 2+2?" and returns the answer
+- [x] Backend test with the client mocked
+- [x] Manual check against the real API, answer contains 4
 
 Success: real call returns a correct answer from inside the container.
 

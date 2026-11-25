@@ -6,6 +6,7 @@ FastAPI app managed with uv (Python 3.13).
 - `app/db.py` - SQLite (stdlib `sqlite3`): `init_db`, `get_board` (creates the default board on first read), `save_board`. Path from `DB_PATH`, default `data/app.db`. See `docs/DATABASE.md`
 - `app/models.py` - Pydantic `Board` / `Column` / `Card`, same shape as the frontend `BoardData`
 - `app/default_board.json` - board given to new users
+- `app/ai.py` - OpenRouter via the `openai` SDK. Model `openai/gpt-oss-120b`, then any `OPENROUTER_FALLBACK_MODELS` (comma-separated) as OpenRouter's `models` fallback list. Key from `OPENROUTER_API_KEY`. Tests mock `ai.ask` or `ai.client`
 - `static/` - files served at `/`. Not in git: the Dockerfile copies the Next export (`frontend/out`) here. To serve the frontend outside Docker, copy `frontend/out` to `backend/static`
 - `tests/` - pytest, using FastAPI `TestClient`. `conftest.py` points `DB_PATH` at a temp file per test and has `client` / `signed_in` fixtures
 
@@ -16,6 +17,7 @@ Routes:
 - `GET /api/auth/me` -> `{username}` or 401
 - `GET /api/board` -> the user's board (401 if signed out)
 - `PUT /api/board` full board -> saves and returns it (422 if invalid)
+- `POST /api/ai/test` -> `{answer}` from asking the model "What is 2+2?" (connectivity check)
 
 Auth: Starlette `SessionMiddleware` (signed cookie). Secret from `SESSION_SECRET`, random per start if unset (sessions then end on restart). Protect routes with `Depends(current_user)`.
 
