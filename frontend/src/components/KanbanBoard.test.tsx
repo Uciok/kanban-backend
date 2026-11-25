@@ -6,12 +6,12 @@ const getFirstColumn = () => screen.getAllByTestId(/column-/i)[0];
 
 describe("KanbanBoard", () => {
   it("renders five columns", () => {
-    render(<KanbanBoard />);
+    render(<KanbanBoard onLogout={() => {}} />);
     expect(screen.getAllByTestId(/column-/i)).toHaveLength(5);
   });
 
   it("renames a column", async () => {
-    render(<KanbanBoard />);
+    render(<KanbanBoard onLogout={() => {}} />);
     const column = getFirstColumn();
     const input = within(column).getByLabelText("Column title");
     await userEvent.clear(input);
@@ -20,7 +20,7 @@ describe("KanbanBoard", () => {
   });
 
   it("adds and removes a card", async () => {
-    render(<KanbanBoard />);
+    render(<KanbanBoard onLogout={() => {}} />);
     const column = getFirstColumn();
     const addButton = within(column).getByRole("button", {
       name: /add a card/i,
@@ -42,5 +42,47 @@ describe("KanbanBoard", () => {
     await userEvent.click(deleteButton);
 
     expect(within(column).queryByText("New card")).not.toBeInTheDocument();
+  });
+
+  it("edits a card", async () => {
+    render(<KanbanBoard onLogout={() => {}} />);
+    const card = screen.getByTestId("card-card-1");
+    await userEvent.click(within(card).getByRole("button", { name: /edit align roadmap themes/i }));
+
+    const titleInput = within(card).getByLabelText("Card title");
+    await userEvent.clear(titleInput);
+    await userEvent.type(titleInput, "Updated title");
+    const detailsInput = within(card).getByLabelText("Card details");
+    await userEvent.clear(detailsInput);
+    await userEvent.type(detailsInput, "Updated details");
+    await userEvent.click(within(card).getByRole("button", { name: /save/i }));
+
+    expect(within(card).getByText("Updated title")).toBeInTheDocument();
+    expect(within(card).getByText("Updated details")).toBeInTheDocument();
+  });
+
+  it("cancels editing without changes", async () => {
+    render(<KanbanBoard onLogout={() => {}} />);
+    const card = screen.getByTestId("card-card-1");
+    await userEvent.click(within(card).getByRole("button", { name: /edit align roadmap themes/i }));
+
+    const titleInput = within(card).getByLabelText("Card title");
+    await userEvent.clear(titleInput);
+    await userEvent.type(titleInput, "Discarded");
+    await userEvent.click(within(card).getByRole("button", { name: /cancel/i }));
+
+    expect(within(card).getByText("Align roadmap themes")).toBeInTheDocument();
+    expect(within(card).queryByText("Discarded")).not.toBeInTheDocument();
+  });
+
+  it("does not save an empty title", async () => {
+    render(<KanbanBoard onLogout={() => {}} />);
+    const card = screen.getByTestId("card-card-1");
+    await userEvent.click(within(card).getByRole("button", { name: /edit align roadmap themes/i }));
+
+    await userEvent.clear(within(card).getByLabelText("Card title"));
+    await userEvent.click(within(card).getByRole("button", { name: /save/i }));
+
+    expect(within(card).getByLabelText("Card title")).toBeInTheDocument();
   });
 });

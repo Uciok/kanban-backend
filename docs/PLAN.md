@@ -9,6 +9,7 @@
 - AI: OpenRouter via the `openai` SDK, model `openai/gpt-oss-120b`. Structured output returns `{ reply, board | null }`, where `board` is the full updated board. AI may only change cards; column ids, titles and order must stay the same
 - Chat history lives in the browser and is sent with each request
 - Tests: pytest for backend (AI mocked), Vitest for frontend units, Playwright e2e against the running container
+- Coverage: aim for 80% (backend via `pytest-cov`, frontend via `vitest --coverage`) where it comes naturally. Only write tests that check real behavior; never add tests just to raise the number. Falling short of 80% is fine
 
 ## Target layout
 
@@ -55,23 +56,25 @@ Success: container starts and stops with the scripts on Mac/Linux (Windows scrip
 
 ## Part 3: Add in Frontend
 
-- [ ] `next.config.ts`: `output: "export"`
-- [ ] Dockerfile: node stage builds `frontend/out`, copied into the python image; FastAPI mounts it at `/` (after API routes). Remove the hello world page
-- [ ] Add card editing (title and details) - required by the business requirements, missing in the demo
-- [ ] Playwright config: `baseURL` `http://127.0.0.1:8000`, no dev server (expects container running)
-- [ ] Unit tests: card editing, existing tests still pass
-- [ ] E2E: board loads from the container, add, edit, delete, move card, rename column
+- [x] `next.config.ts`: `output: "export"`
+- [x] Dockerfile: node stage builds `frontend/out`, copied into the python image; FastAPI mounts it at `/` (after API routes). Remove the hello world page
+- [x] Add card editing (title and details) - required by the business requirements, missing in the demo
+- [x] Playwright config: `baseURL` `http://127.0.0.1:8000`, no dev server (expects container running)
+- [x] Unit tests: card editing, existing tests still pass
+- [x] E2E: board loads from the container, add, edit, delete, move card, rename column
+- [x] User verifies the board at localhost:8000 via the start script and runs `npm run test:e2e`
 
 Success: `localhost:8000` shows the Kanban board from the container; all unit and e2e tests pass.
 
 ## Part 4: Fake sign in
 
-- [ ] Backend: `POST /api/auth/login` (checks `user` / `password`, sets session), `POST /api/auth/logout`, `GET /api/auth/me`
-- [ ] Session secret from env (`SESSION_SECRET`), generated at startup if unset
-- [ ] Frontend: on load call `/api/auth/me`; show login form if not signed in, board if signed in. Logout button in the header
-- [ ] Backend tests: valid login, invalid login (401), me with and without session, logout clears session
-- [ ] Unit tests: login form renders, error on bad credentials, logout
-- [ ] E2E: must log in to see the board; bad credentials show error; logout returns to login; session survives reload
+- [x] Backend: `POST /api/auth/login` (checks `user` / `password`, sets session), `POST /api/auth/logout`, `GET /api/auth/me`
+- [x] Session secret from env (`SESSION_SECRET`), generated at startup if unset
+- [x] Frontend: on load call `/api/auth/me`; show login form if not signed in, board if signed in. Logout button in the header
+- [x] Backend tests: valid login, invalid login (401), me with and without session, logout clears session
+- [x] Unit tests: login form renders, error on bad credentials, logout
+- [x] E2E: must log in to see the board; bad credentials show error; logout returns to login; session survives reload
+- [ ] User verifies sign in / log out at localhost:8000
 
 Success: board is only reachable after login; all tests pass.
 
