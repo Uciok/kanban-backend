@@ -7,12 +7,12 @@ General
 - Git: GitHub repo `Uciok/kanban-backend`, branch `main` (local branch `kanban-backend` tracks it). Commit messages start with "Kanban with backend:"
 
 Runtime
-- One Docker container `pm-app` on port 8000. Multi-stage Dockerfile: Node builds the Next static export (`frontend/out`), copied to `/app/static` in the Python (uv) image. FastAPI serves the API under `/api` and the static files at `/` (mounted last so API routes win). `backend/static/` is not in git
+- One Docker container `pm-app` on port 8000, published on 127.0.0.1 only. Multi-stage Dockerfile: Node builds the Next static export (`frontend/out`), copied to `/app/static` in the Python (uv) image. FastAPI serves the API under `/api` and the static files at `/` (mounted last so API routes win). `backend/static/` is not in git
 - Data in the `pm-data` Docker volume at `/app/data`; `stop.sh` keeps it
 
 Auth
 - Hardcoded `user` / `password`, checked by the backend. Session in a signed cookie (Starlette `SessionMiddleware`). All `/api` routes except health and login require it (`Depends(current_user)`)
-- `SESSION_SECRET` from env, random per start if unset, so sessions end when the container restarts. Acceptable for the MVP
+- `SESSION_SECRET` from env (set in `.env`), so sessions survive restarts. If unset, a random secret is used per start
 
 Database
 - SQLite at `data/app.db` (`DB_PATH` overrides), created with its tables on startup. Each user's board stored as one JSON blob in the frontend's `BoardData` shape. Details in `docs/DATABASE.md`
@@ -20,7 +20,7 @@ Database
 
 Board saving
 - The frontend saves the full board (`PUT /api/board`) after every change; column renames save on blur, not per keystroke
-- Saves are fire-and-forget with last write wins. No retry or error display for failed saves (MVP)
+- Saves are fire-and-forget with last write wins. A save rejected with 401 (session ended) returns to the login form; other failed saves are not retried or shown (MVP)
 
 AI
 - OpenRouter via the `openai` SDK, model `openai/gpt-oss-120b`, then `OPENROUTER_FALLBACK_MODELS` in order as OpenRouter's `models` fallback list

@@ -1,6 +1,8 @@
 import json
 from types import SimpleNamespace
 
+import httpx
+import openai
 import pytest
 
 from app import ai, db
@@ -144,4 +146,29 @@ def test_chat_unparseable_output_raises_ai_error(monkeypatch):
 
     monkeypatch.setattr(ai, "client", lambda: fake_client(parse))
     with pytest.raises(ai.AIError):
+        ai.chat(default_board(), [], "Hi")
+
+
+def test_chat_api_failure_raises_ai_error(monkeypatch):
+    def parse(**kwargs):
+        raise openai.APIConnectionError(request=httpx.Request("POST", ai.BASE_URL))
+
+    monkeypatch.setattr(ai, "client", lambda: fake_client(parse))
+    with pytest.raises(ai.AIError, match="unavailable"):
+        ai.chat(default_board(), [], "Hi")
+
+
+def test_chat_missing_api_key_raises_ai_error(monkeypatch):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    with pytest.raises(ai.AIError, match="unavailable"):
+        ai.chat(default_board(), [], "Hi")
+
+
+def test_chat_refusal_raises_ai_error(monkeypatch):
+    def parse(**kwargs):
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(parsed=None))])
+
+    monkeypatch.setattr(ai, "client", lambda: fake_client(parse))
+    with pytest.raises(ai.AIError, match="could not answer"):
         ai.chat(default_board(), [], "Hi")

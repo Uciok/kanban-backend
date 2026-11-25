@@ -11,8 +11,8 @@ Next.js 16 (App Router) + React 19 + Tailwind 4 demo of a single Kanban board. B
 - `src/lib/auth.ts` - `getCurrentUser`, `login`, `logout` (fetch wrappers for `/api/auth/*`)
 - `src/app/globals.css` - Tailwind import and the color scheme as CSS variables (`--accent-yellow`, `--primary-blue`, `--secondary-purple`, `--navy-dark`, `--gray-text`)
 - `src/lib/kanban.ts` - types (`Card`, `Column`, `BoardData`), `moveCard` (pure reorder/move logic), `createId`
-- `src/lib/api.ts` - `getBoard`, `saveBoard`
-- `src/lib/chat.ts` - `sendChat` (`POST /api/chat`, throws with the backend's `detail` on error) and the chat history in `sessionStorage` (`loadHistory`, `saveHistory`, `clearHistory`)
+- `src/lib/api.ts` - `getBoard`, `saveBoard` (returns false on 401; `KanbanBoard` then calls `onLogout` to go back to sign in)
+- `src/lib/chat.ts` - `sendChat` (`POST /api/chat`, throws with the backend's `detail` on error, or a generic message if the error body is not JSON) and the chat history in `sessionStorage` (`loadHistory`, `saveHistory`, `clearHistory`)
 - `src/components/ChatSidebar.tsx` - AI chat panel (340px) fixed on the right; the board adds matching right padding on `lg` screens while it is open; hidden with the `hidden` attribute when closed (stays mounted). Plain-text messages; Enter sends, Shift+Enter adds a line. On error the message goes back into the input. Reports busy state and AI board updates to `KanbanBoard`
 - `src/components/KanbanBoard.tsx` - loads the board on mount and saves the full board after every change (column renames save on blur); AI chat and Log out buttons in the header (`onLogout` prop); locks the board (`inert`) while the AI is answering and replaces it with the AI's board (already saved by the backend); drag and drop via `@dnd-kit` (`DndContext`, `DragOverlay`); handlers for rename column, add, edit, delete and move card
 - `src/components/KanbanColumn.tsx` - droppable column (scroll-snap item on phones), editable title input, sortable card list, `NewCardForm`

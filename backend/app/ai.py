@@ -1,7 +1,7 @@
 import os
 from typing import Literal
 
-from openai import LengthFinishReasonError, OpenAI
+from openai import LengthFinishReasonError, OpenAI, OpenAIError
 from pydantic import BaseModel, ValidationError
 
 from app.models import Board, Card, Column
@@ -52,7 +52,8 @@ def models() -> list[str]:
 
 
 def client() -> OpenAI:
-    return OpenAI(base_url=BASE_URL, api_key=os.environ["OPENROUTER_API_KEY"])
+    # A missing key raises OpenAIError when the client is created
+    return OpenAI(base_url=BASE_URL, api_key=os.environ.get("OPENROUTER_API_KEY"))
 
 
 def ask(prompt: str) -> str:
@@ -80,7 +81,14 @@ def chat(board: Board, history: list[Message], message: str) -> ChatResult:
         )
     except (ValidationError, LengthFinishReasonError) as error:
         raise AIError("The AI returned a response that could not be read") from error
-    return response.choices[0].message.parsed
+    except OpenAIError as error:
+        # Network errors, timeouts, rate limits, a bad or missing API key
+        raise AIError("The AI service is unavailable. Please try again.") from error
+    result = response.choices[0].message.parsed
+    if result is None:
+        # The model refused instead of answering
+        raise AIError("The AI could not answer that. Please try rephrasing.")
+    return result
 
 
 def apply_update(current: Board, proposed: AIBoard) -> Board:

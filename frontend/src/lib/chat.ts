@@ -33,9 +33,12 @@ export const sendChat = async (
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, history }),
   });
-  const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.detail ?? "Something went wrong. Please try again.");
+    // Error bodies are not always JSON (e.g. a plain-text 500)
+    const data = await response.json().catch(() => ({}));
+    throw new Error(
+      typeof data.detail === "string" ? data.detail : "Something went wrong. Please try again."
+    );
   }
-  return data;
+  return response.json();
 };

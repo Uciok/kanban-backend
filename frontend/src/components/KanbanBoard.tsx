@@ -48,9 +48,16 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
     return null;
   }
 
+  // A save rejected with 401 means the session ended (e.g. server restart): go back to sign in
+  const save = async (next: BoardData) => {
+    if (!(await saveBoard(next))) {
+      onLogout();
+    }
+  };
+
   const update = (next: BoardData) => {
     setBoard(next);
-    saveBoard(next);
+    save(next);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -82,7 +89,7 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
   };
 
   const handleRenameDone = () => {
-    saveBoard(board);
+    save(board);
   };
 
   const handleAddCard = (columnId: string, title: string, details: string) => {

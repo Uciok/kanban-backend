@@ -107,6 +107,21 @@ describe("ChatSidebar", () => {
     expect(sessionStorage.getItem("pm-chat-history")).toBeNull();
   });
 
+  it("shows a readable error when the server error is not JSON", async () => {
+    fakeBackend({
+      chat: () => new Response("Internal Server Error", { status: 500 }),
+    });
+    await renderBoard();
+    await openChat();
+
+    await send("Hello");
+
+    expect(
+      await screen.findByText("Something went wrong. Please try again.")
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Message")).toHaveValue("Hello");
+  });
+
   it("keeps the conversation after a reload", async () => {
     fakeBackend();
     const view = await renderBoard();

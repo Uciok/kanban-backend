@@ -63,6 +63,17 @@ describe("App", () => {
     expect(screen.queryByText("Prototype analytics view")).not.toBeInTheDocument();
   });
 
+  it("returns to the login form when a save finds the session has ended", async () => {
+    const backend = fakeBackend();
+    render(<App />);
+    await screen.findByRole("heading", { name: "Kanban Studio" });
+    backend.endSession();
+
+    await userEvent.click(screen.getByRole("button", { name: "Delete Prototype analytics view" }));
+
+    expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+  });
+
   it("clears the chat history on logout", async () => {
     sessionStorage.setItem(
       "pm-chat-history",

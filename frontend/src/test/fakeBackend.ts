@@ -33,6 +33,9 @@ export const fakeBackend = ({
       session = false;
       return jsonResponse(200, {});
     }
+    if (url === "/api/board" && !session) {
+      return jsonResponse(401, { detail: "Not signed in" });
+    }
     if (url === "/api/board" && method === "GET") {
       return jsonResponse(200, board);
     }
@@ -50,5 +53,13 @@ export const fakeBackend = ({
   });
   vi.stubGlobal("fetch", fetchMock);
 
-  return { saves, chatRequests, savedBoard: () => board };
+  return {
+    saves,
+    chatRequests,
+    savedBoard: () => board,
+    // Simulates the session ending on the server, e.g. after a restart
+    endSession: () => {
+      session = false;
+    },
+  };
 };

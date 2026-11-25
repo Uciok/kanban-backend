@@ -8,7 +8,10 @@ Requires Docker. Create `.env` in the project root:
 
 ```
 OPENROUTER_API_KEY=your-key
+SESSION_SECRET=any-long-random-string
 ```
+
+`SESSION_SECRET` keeps you signed in across restarts (e.g. `openssl rand -hex 32`).
 
 Then:
 
@@ -17,7 +20,7 @@ Then:
 ./scripts/stop.sh     # Windows: scripts/stop.ps1
 ```
 
-Open http://localhost:8000 and sign in with `user` / `password`. Board data is kept in the `pm-data` Docker volume.
+Open http://localhost:8000 (only reachable from this machine) and sign in with `user` / `password`. Board data is kept in the `pm-data` Docker volume.
 
 ## Tests
 
