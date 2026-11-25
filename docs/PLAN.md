@@ -1,37 +1,144 @@
-# High level steps for project
+# Project Plan
 
-Part 1: Plan
+## Decisions
 
-Enrich this document to plan out each of these parts in detail, with substeps listed out as a checklist to be checked off by the agent, and with tests and success critieria for each. Also create an AGENTS.md file inside the frontend directory that describes the existing code there. Ensure the user checks and approves the plan.
+- Project root: this repo. Secrets in `.env` (git-ignored): `OPENROUTER_API_KEY`
+- One Docker container on port 8000. FastAPI serves the API under `/api` and the static Next export at `/`
+- Auth: hardcoded `user` / `password`, checked by the backend, session kept in a signed cookie (Starlette `SessionMiddleware`). All `/api` routes except login require it
+- Database: SQLite at `data/app.db` (Docker volume), created on startup if missing. Each user's board stored as one JSON blob in the `BoardData` shape the frontend already uses
+- AI: OpenRouter via the `openai` SDK, model `openai/gpt-oss-120b`. Structured output returns `{ reply, board | null }`, where `board` is the full updated board. AI may only change cards; column ids, titles and order must stay the same
+- Chat history lives in the browser and is sent with each request
+- Tests: pytest for backend (AI mocked), Vitest for frontend units, Playwright e2e against the running container
 
-Part 2: Scaffolding
+## Target layout
 
-Set up the Docker infrastructure, the backend in backend/ with FastAPI, and write the start and stop scripts in the scripts/ directory. This should serve example static HTML to confirm that a 'hello world' example works running locally and also make an API call.
+```
+Dockerfile              multi-stage: node builds frontend, python (uv) runs backend
+backend/
+  pyproject.toml, uv.lock
+  app/main.py           FastAPI app, routes, static mount
+  app/db.py             SQLite access
+  app/ai.py             OpenRouter calls
+  tests/
+frontend/               Next.js (static export)
+scripts/
+  start.sh, stop.sh     Mac / Linux
+  start.ps1, stop.ps1   Windows
+docs/
+```
 
-Part 3: Add in Frontend
+---
 
-Now update so that the frontend is statically built and served, so that the app has the demo Kanban board displayed at /. Comprehensive unit and integration tests.
+## Part 1: Plan
 
-Part 4: Add in a fake user sign in experience
+- [x] Enrich this plan with substeps, tests and success criteria
+- [x] Write `frontend/AGENTS.md` describing the existing code
+- [x] User reviews and approves the plan
 
-Now update so that on first hitting /, you need to log in with dummy credentials ("user", "password") in order to see the Kanban, and you can log out. Comprehensive tests.
+Success: user sign-off.
 
-Part 5: Database modeling
+## Part 2: Scaffolding
 
-Now propose a database schema for the Kanban, saving it as JSON. Document the database approach in docs/ and get user sign off.
+- [x] `backend/` with uv project (`fastapi`, `uvicorn`), `app/main.py`
+- [x] `GET /api/health` returns `{"status": "ok"}`
+- [x] Temporary `static/index.html` hello world that calls `/api/health` and shows the result
+- [x] `Dockerfile` (python slim + uv), runs uvicorn on 8000
+- [x] `scripts/start.sh` / `start.ps1`: build image, run container `pm-app` with `--env-file .env`, port 8000, volume for `data/`
+- [x] `scripts/stop.sh` / `stop.ps1`: stop and remove the container
+- [x] pytest set up with one test for `/api/health`
+- [x] Update `backend/AGENTS.md` and `scripts/AGENTS.md`
+- [x] User verifies the container with the start/stop scripts
 
-Part 6: Backend
+Tests: pytest health check. Manual: start script, open `http://localhost:8000`, see hello world plus API response; stop script cleans up.
 
-Now add API routes to allow the backend to read and change the Kanban for a given user; test this thoroughly with backend unit tests. The database should be created if it doesn't exist.
+Success: container starts and stops with the scripts on Mac/Linux (Windows scripts reviewed), page and API both respond.
 
-Part 7: Frontend + Backend
+## Part 3: Add in Frontend
 
-Now have the frontend actually use the backend API, so that the app is a proper persistent Kanban board. Test very throughly.
+- [ ] `next.config.ts`: `output: "export"`
+- [ ] Dockerfile: node stage builds `frontend/out`, copied into the python image; FastAPI mounts it at `/` (after API routes). Remove the hello world page
+- [ ] Add card editing (title and details) - required by the business requirements, missing in the demo
+- [ ] Playwright config: `baseURL` `http://127.0.0.1:8000`, no dev server (expects container running)
+- [ ] Unit tests: card editing, existing tests still pass
+- [ ] E2E: board loads from the container, add, edit, delete, move card, rename column
 
-Part 8: AI connectivity
+Success: `localhost:8000` shows the Kanban board from the container; all unit and e2e tests pass.
 
-Now allow the backend to make an AI call via OpenRouter. Test connectivity with a simple "2+2" test and ensure the AI call is working.
+## Part 4: Fake sign in
 
-Part 9: Now extend the backend call so that it always calls the AI with the JSON of the Kanban board, plus the user's question (and conversation history). The AI should respond with Structured Outputs that includes the response to the user and optionaly an update to the Kanban. Test thoroughly.
+- [ ] Backend: `POST /api/auth/login` (checks `user` / `password`, sets session), `POST /api/auth/logout`, `GET /api/auth/me`
+- [ ] Session secret from env (`SESSION_SECRET`), generated at startup if unset
+- [ ] Frontend: on load call `/api/auth/me`; show login form if not signed in, board if signed in. Logout button in the header
+- [ ] Backend tests: valid login, invalid login (401), me with and without session, logout clears session
+- [ ] Unit tests: login form renders, error on bad credentials, logout
+- [ ] E2E: must log in to see the board; bad credentials show error; logout returns to login; session survives reload
 
-Part 10: Now add a beautiful sidebar widget to the UI supporting full AI chat, and allowing the LLM (as it determines) to update the Kanban based on its Structured Outputs. If the AI updates the Kanban, then the UI should refresh automatically.
+Success: board is only reachable after login; all tests pass.
+
+## Part 5: Database modeling
+
+- [ ] Write `docs/DATABASE.md` with schema and approach:
+  - `users (id INTEGER PK, username TEXT UNIQUE, created_at)`
+  - `boards (id INTEGER PK, user_id INTEGER UNIQUE FK, data TEXT JSON, updated_at)`
+  - `data` holds `BoardData` JSON; new users get the default board (the current `initialData`)
+  - `user` is seeded on startup; passwords stay hardcoded for the MVP
+- [ ] Example board JSON in the doc
+- [ ] User sign-off
+
+Success: user approves the schema.
+
+## Part 6: Backend
+
+- [ ] `app/db.py`: create db and tables if missing, seed `user`, get board (create default if none), save board
+- [ ] Pydantic models for `BoardData`
+- [ ] `GET /api/board` returns the signed-in user's board
+- [ ] `PUT /api/board` validates and saves the full board
+- [ ] DB path configurable (`DB_PATH`) so tests use a temp file
+- [ ] Tests: db created when missing; default board on first read; save then read round-trips; invalid payload rejected (422); unauthenticated requests rejected (401); boards are isolated per user
+
+Success: all backend tests pass; data survives container restart (volume).
+
+## Part 7: Frontend + Backend
+
+- [ ] `src/lib/api.ts`: `getBoard`, `saveBoard`
+- [ ] Board loads from the API after login (loading state while fetching)
+- [ ] Every change (move, add, edit, delete) saves the full board; column rename saves on blur
+- [ ] Remove `initialData` from the frontend (default board now comes from the backend)
+- [ ] Unit tests with `fetch` mocked: loads board, saves after each kind of change
+- [ ] E2E: each change persists across reload; data persists across container restart
+
+Success: the board is fully persistent; all tests pass.
+
+## Part 8: AI connectivity
+
+- [ ] Add `openai` SDK; `app/ai.py` client with OpenRouter base URL, key from `OPENROUTER_API_KEY`, model `openai/gpt-oss-120b`
+- [ ] `POST /api/ai/test` (signed in) sends "What is 2+2?" and returns the answer
+- [ ] Backend test with the client mocked
+- [ ] Manual check against the real API, answer contains 4
+
+Success: real call returns a correct answer from inside the container.
+
+## Part 9: AI with the Kanban board
+
+- [ ] `POST /api/chat` with `{ message, history: [{ role, content }] }`
+- [ ] System prompt explains the board format and the rules (cards only; keep column ids, titles and order)
+- [ ] Send current board JSON + history + message; request structured output `{ reply: string, board: BoardData | null }`
+- [ ] If `board` is returned: validate it, check columns are unchanged, save it. Return `{ reply, board }`
+- [ ] Tests (AI mocked): reply only leaves board unchanged; board update is saved; update that changes columns is rejected and board stays as it was; invalid model output returns a clear error; history is passed through
+- [ ] Manual check with the real model: create, edit and move cards via chat
+
+Success: the real model can create, edit and move one or more cards; all tests pass.
+
+Risk: not every OpenRouter provider for `gpt-oss-120b` supports structured outputs. If needed, set provider routing to require it (`require_parameters`). Confirm with evidence in Part 8/9.
+
+## Part 10: AI chat sidebar
+
+- [ ] Collapsible sidebar on the right with message list, input and send button, in the project color scheme
+- [ ] History kept in React state, sent with each message
+- [ ] Loading state while waiting; error message on failure
+- [ ] When the response includes a board, update the board on screen right away
+- [ ] Unit tests (fetch mocked): send message, show reply, board refreshes when the AI returns a board, error shown
+- [ ] E2E with the AI mocked at the network level (Playwright route): chat flow and board refresh
+- [ ] Manual check with the real model
+
+Success: user can chat with the AI and see board changes appear without reloading; all tests pass.
