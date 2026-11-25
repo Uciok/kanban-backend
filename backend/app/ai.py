@@ -8,6 +8,9 @@ from app.models import Board, Card, Column
 
 BASE_URL = "https://openrouter.ai/api/v1"
 MODEL = "openai/gpt-oss-120b"
+TIMEOUT_SECONDS = 60
+# Only the most recent messages are sent, so cost and context size stay bounded
+HISTORY_LIMIT = 20
 
 SYSTEM_PROMPT = """You are the assistant inside a Kanban board app. You help the user manage their board.
 
@@ -52,8 +55,14 @@ def models() -> list[str]:
 
 
 def client() -> OpenAI:
-    # A missing key raises OpenAIError when the client is created
-    return OpenAI(base_url=BASE_URL, api_key=os.environ.get("OPENROUTER_API_KEY"))
+    # A missing key raises OpenAIError when the client is created.
+    # Short timeout: the board is locked while waiting (SDK default is 600s with 2 retries)
+    return OpenAI(
+        base_url=BASE_URL,
+        api_key=os.environ.get("OPENROUTER_API_KEY"),
+        timeout=TIMEOUT_SECONDS,
+        max_retries=1,
+    )
 
 
 def ask(prompt: str) -> str:
@@ -68,7 +77,7 @@ def ask(prompt: str) -> str:
 def chat(board: Board, history: list[Message], message: str) -> ChatResult:
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT + board.model_dump_json()},
-        *(m.model_dump() for m in history),
+        *(m.model_dump() for m in history[-HISTORY_LIMIT:]),
         {"role": "user", "content": message},
     ]
     try:
@@ -96,8 +105,10 @@ def apply_update(current: Board, proposed: AIBoard) -> Board:
     if columns != [(c.id, c.title) for c in current.columns]:
         raise AIError("The AI tried to change the columns, so the update was not applied")
 
-    card_ids = [card_id for column in proposed.columns for card_id in column.cardIds]
-    if sorted(card_ids) != sorted(card.id for card in proposed.cards) or len(set(card_ids)) != len(card_ids):
-        raise AIError("The AI returned cards that do not match the columns, so the update was not applied")
-
-    return Board(columns=proposed.columns, cards={card.id: card for card in proposed.cards})
+    if len({card.id for card in proposed.cards}) != len(proposed.cards):
+        raise AIError("The AI returned the same card twice, so the update was not applied")
+    try:
+        # Board checks that every card is in exactly one column
+        return Board(columns=proposed.columns, cards={card.id: card for card in proposed.cards})
+    except ValidationError as error:
+        raise AIError("The AI returned cards that do not match the columns, so the update was not applied") from error

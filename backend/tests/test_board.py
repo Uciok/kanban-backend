@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from app import db
 
 
@@ -38,6 +40,22 @@ def test_board_survives_logout(signed_in):
 def test_invalid_board_rejected(signed_in):
     response = signed_in.put("/api/board", json={"columns": [{"id": "col-a"}], "cards": {}})
     assert response.status_code == 422
+    assert signed_in.get("/api/board").json() == json.loads(db.DEFAULT_BOARD)
+
+
+@pytest.mark.parametrize("change", ["dangling card id", "card in two columns", "card in no column", "key mismatch"])
+def test_inconsistent_board_rejected(signed_in, change):
+    board = signed_in.get("/api/board").json()
+    if change == "dangling card id":
+        board["columns"][0]["cardIds"].append("card-ghost")
+    elif change == "card in two columns":
+        board["columns"][1]["cardIds"].append("card-1")
+    elif change == "card in no column":
+        board["columns"][0]["cardIds"].remove("card-1")
+    else:
+        board["cards"]["card-1"]["id"] = "card-other"
+
+    assert signed_in.put("/api/board", json=board).status_code == 422
     assert signed_in.get("/api/board").json() == json.loads(db.DEFAULT_BOARD)
 
 

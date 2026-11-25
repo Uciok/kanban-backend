@@ -172,3 +172,37 @@ def test_chat_refusal_raises_ai_error(monkeypatch):
     monkeypatch.setattr(ai, "client", lambda: fake_client(parse))
     with pytest.raises(ai.AIError, match="could not answer"):
         ai.chat(default_board(), [], "Hi")
+
+
+def test_chat_sends_only_recent_history(monkeypatch):
+    calls = []
+
+    def parse(**kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(parsed=ai.ChatResult(reply="Hi", board=None)))])
+
+    monkeypatch.setattr(ai, "client", lambda: fake_client(parse))
+    history = [ai.Message(role="user", content=f"Message {i}") for i in range(ai.HISTORY_LIMIT + 5)]
+    ai.chat(default_board(), history, "Now")
+
+    sent = calls[0]["messages"][1:-1]
+    assert len(sent) == ai.HISTORY_LIMIT
+    assert sent[0]["content"] == "Message 5"
+
+
+def test_client_has_short_timeout(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    client = ai.client()
+    assert client.timeout == ai.TIMEOUT_SECONDS
+    assert client.max_retries == 1
+
+
+def test_card_sent_twice_rejected(signed_in, fake_chat):
+    board = as_ai_board(default_board())
+    board.cards.append(board.cards[0])
+    fake_chat.result = ai.ChatResult(reply="Done", board=board)
+
+    response = signed_in.post("/api/chat", json={"message": "Change cards"})
+
+    assert response.status_code == 502
+    assert signed_in.get("/api/board").json() == json.loads(db.DEFAULT_BOARD)

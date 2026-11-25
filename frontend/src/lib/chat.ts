@@ -1,3 +1,4 @@
+import { savesDone } from "@/lib/api";
 import type { BoardData } from "@/lib/kanban";
 
 export type ChatMessage = {
@@ -28,6 +29,8 @@ export const sendChat = async (
   message: string,
   history: ChatMessage[]
 ): Promise<ChatResponse> => {
+  // The AI works on the stored board, so let the latest edits reach it first
+  await savesDone();
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

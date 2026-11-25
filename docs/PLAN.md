@@ -20,13 +20,14 @@ Database
 
 Board saving
 - The frontend saves the full board (`PUT /api/board`) after every change; column renames save on blur, not per keystroke
-- Saves are fire-and-forget with last write wins. A save rejected with 401 (session ended) returns to the login form; other failed saves are not retried or shown (MVP)
+- Saves run one at a time in order (queued in `api.ts`), so an older board never overwrites a newer one; a chat message waits for pending saves. A save rejected with 401 (session ended) returns to the login form; other failed saves are not retried or shown (MVP)
 
 AI
 - OpenRouter via the `openai` SDK, model `openai/gpt-oss-120b`, then `OPENROUTER_FALLBACK_MODELS` in order as OpenRouter's `models` fallback list
 - Chat uses strict structured outputs: `{ reply, board | null }`, `board` being the full updated board with cards as a list (strict schemas do not allow free-form maps); the backend converts it back. `provider.require_parameters` limits routing (fallbacks included) to providers that support structured outputs
 - AI may only change cards. The backend rejects updates that change column ids, titles or order, or where a card is not in exactly one column (502, board unchanged)
 - The system prompt asks for plain-text replies (no Markdown, since the app shows plain text) and to refer to cards by title, not id
+- OpenRouter client: 60s timeout, 1 retry. Only the last 20 history messages are sent to the model
 - Chat history lives in the browser (`sessionStorage`, so it survives a reload and is cleared on logout) and is sent with each request; only `user` and `assistant` roles are accepted
 - Chat sidebar: closed by default, plain-text replies, board locked while the AI is answering, no clear-chat button. It is 340px wide and fixed on the right; on wide screens (`lg`) the board makes room for it (right padding) instead of being covered, so the columns get narrower while it is open. On an AI error the message goes back into the input and is not added to the history
 
@@ -169,7 +170,7 @@ Success: real call returns a correct answer from inside the container.
 - [x] `POST /api/chat` with `{ message, history: [{ role, content }] }`
 - [x] System prompt explains the board format and the rules (cards only; keep column ids, titles and order)
 - [x] Send current board JSON + history + message; request structured output `{ reply: string, board: BoardData | null }`
-- [x] If `board` is returned: validate it, check columns are unchanged and every card is in exactly one column, save it. Return `{ reply, board }`; invalid updates return 502 and the board is not changed
+- [x] If `board` is returned: validate it, check columns are unchanged and every card is in exactly one column (the same check runs on every `Board`, so `PUT /api/board` enforces it too), save it. Return `{ reply, board }`; invalid updates return 502 and the board is not changed
 - [x] The AI sends cards as a list (strict structured outputs do not allow free-form maps); the backend converts it to the `cards` map
 - [x] Requests set OpenRouter `provider.require_parameters` so only providers that support structured outputs are used
 - [x] Tests (AI mocked): reply only leaves board unchanged; board update is saved; update that changes columns is rejected and board stays as it was; invalid model output returns a clear error; history is passed through

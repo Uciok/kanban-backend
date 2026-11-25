@@ -8,7 +8,7 @@ The codebase is small, readable and consistent with the plan. Tests are in good 
 
 The main gaps are at the edges: failures of the OpenRouter call, failed board saves and the network exposure of the container. Three issues are worth fixing before relying on the app day to day (H1-H3).
 
-Status: H1, H2 and H3 fixed on 2026-11-25 (see the action list).
+Status: H1-H3 and M1-M4 fixed on 2026-11-25 (see the action list).
 
 Severity: **High** = users hit it in normal use or it exposes the API key; **Medium** = real but needs a less common situation; **Low** = minor or cosmetic.
 
@@ -159,10 +159,10 @@ In suggested order. Each item is small.
 - [x] H2: bind the container to `127.0.0.1` in `start.sh` and `start.ps1`
 - [x] H3: add `SESSION_SECRET` to `.env` and the README; return to the login form when a save gets 401
 - [x] H1: map OpenRouter errors and refusals to `AIError` (502); make `sendChat` handle non-JSON errors; add tests
-- [ ] M1: OpenAI client `timeout=60, max_retries=1`
-- [ ] M2: board consistency `model_validator` on `Board`; simplify `apply_update`; add a 422 test
-- [ ] M3: send only the last 20 history messages to the model
-- [ ] M4: chain board saves in `api.ts`; wait for the pending save before sending a chat message
+- [x] M1: OpenAI client `timeout=60, max_retries=1`
+- [x] M2: board consistency `model_validator` on `Board`; simplify `apply_update`; add a 422 test
+- [x] M3: send only the last 20 history messages to the model
+- [x] M4: chain board saves in `api.ts`; wait for the pending save before sending a chat message
 - [ ] L1: check `response.ok` in `getBoard`
 - [ ] L4: keep the previous column title when the new one is blank
 - [ ] L5: stop storing "No details yet." as card data
