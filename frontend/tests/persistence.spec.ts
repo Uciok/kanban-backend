@@ -23,6 +23,8 @@ test("deleted card stays deleted after logout and sign in", async ({ page }) => 
 test("moved card stays in its new column after reload", async ({ page }) => {
   const card = page.getByTestId("card-card-1");
   const target = page.getByTestId("column-col-review");
+  // Mouse drags only work on what is in the viewport
+  await card.scrollIntoViewIfNeeded();
   const cardBox = (await card.boundingBox())!;
   const targetBox = (await target.boundingBox())!;
   await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2);

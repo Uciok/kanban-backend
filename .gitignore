@@ -178,3 +178,6 @@ cython_debug/
 # Frontend build copied in for local serving
 backend/static/
 backend/data/
+
+# Claude Code local state
+.claude/*.local.md

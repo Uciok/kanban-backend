@@ -1,4 +1,4 @@
-import { savesDone } from "@/lib/api";
+import { errorMessage, savesDone } from "@/lib/api";
 import type { BoardData } from "@/lib/kanban";
 
 export type ChatMessage = {
@@ -11,37 +11,36 @@ type ChatResponse = {
   board: BoardData | null;
 };
 
-const HISTORY_KEY = "pm-chat-history";
+const HISTORY_PREFIX = "pm-chat-history-";
 
-// sessionStorage: survives a reload, cleared on logout
-export const loadHistory = (): ChatMessage[] =>
-  JSON.parse(sessionStorage.getItem(HISTORY_KEY) ?? "[]");
+// sessionStorage, one conversation per board: survives a reload, cleared on logout
+export const loadHistory = (boardId: number): ChatMessage[] =>
+  JSON.parse(sessionStorage.getItem(HISTORY_PREFIX + boardId) ?? "[]");
 
-export const saveHistory = (history: ChatMessage[]) => {
-  sessionStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+export const saveHistory = (boardId: number, history: ChatMessage[]) => {
+  sessionStorage.setItem(HISTORY_PREFIX + boardId, JSON.stringify(history));
 };
 
 export const clearHistory = () => {
-  sessionStorage.removeItem(HISTORY_KEY);
+  Object.keys(sessionStorage)
+    .filter((key) => key.startsWith(HISTORY_PREFIX))
+    .forEach((key) => sessionStorage.removeItem(key));
 };
 
 export const sendChat = async (
+  boardId: number,
   message: string,
   history: ChatMessage[]
 ): Promise<ChatResponse> => {
   // The AI works on the stored board, so let the latest edits reach it first
   await savesDone();
-  const response = await fetch("/api/chat", {
+  const response = await fetch(`/api/boards/${boardId}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, history }),
   });
   if (!response.ok) {
-    // Error bodies are not always JSON (e.g. a plain-text 500)
-    const data = await response.json().catch(() => ({}));
-    throw new Error(
-      typeof data.detail === "string" ? data.detail : "Something went wrong. Please try again."
-    );
+    throw new Error(await errorMessage(response, "Something went wrong. Please try again."));
   }
   return response.json();
 };

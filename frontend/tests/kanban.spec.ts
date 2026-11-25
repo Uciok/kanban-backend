@@ -22,6 +22,8 @@ test("adds a card to a column", async ({ page }) => {
 test("moves a card between columns", async ({ page }) => {
   const card = page.getByTestId("card-card-1");
   const targetColumn = page.getByTestId("column-col-review");
+  // Mouse drags only work on what is in the viewport
+  await card.scrollIntoViewIfNeeded();
   const cardBox = await card.boundingBox();
   const columnBox = await targetColumn.boundingBox();
   if (!cardBox || !columnBox) {

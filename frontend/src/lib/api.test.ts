@@ -27,8 +27,8 @@ afterEach(() => {
 describe("saveBoard", () => {
   it("sends the next save only after the previous one finished", async () => {
     const requests = controlledFetch();
-    const first = saveBoard(cloneBoard());
-    const second = saveBoard(cloneBoard());
+    const first = saveBoard(1, cloneBoard());
+    const second = saveBoard(1, cloneBoard());
     await flush();
     expect(requests).toHaveLength(1);
 
@@ -43,24 +43,24 @@ describe("saveBoard", () => {
 
   it("keeps saving after a failed save", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("offline")));
-    await expect(saveBoard(cloneBoard())).rejects.toThrow("offline");
+    await expect(saveBoard(1, cloneBoard())).rejects.toThrow("offline");
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, {})));
-    expect(await saveBoard(cloneBoard())).toBe(true);
+    expect(await saveBoard(1, cloneBoard())).toBe(true);
   });
 });
 
 describe("sendChat", () => {
   it("waits for pending saves before asking the AI", async () => {
     const requests = controlledFetch();
-    saveBoard(cloneBoard());
-    const reply = sendChat("Hi", []);
+    saveBoard(1, cloneBoard());
+    const reply = sendChat(1, "Hi", []);
     await flush();
-    expect(requests.map((request) => request.url)).toEqual(["/api/board"]);
+    expect(requests.map((request) => request.url)).toEqual(["/api/boards/1"]);
 
     requests[0].respond(jsonResponse(200, {}));
     await flush();
-    expect(requests.map((request) => request.url)).toEqual(["/api/board", "/api/chat"]);
+    expect(requests.map((request) => request.url)).toEqual(["/api/boards/1", "/api/boards/1/chat"]);
 
     requests[1].respond(jsonResponse(200, { reply: "Hello", board: null }));
     expect(await reply).toEqual({ reply: "Hello", board: null });

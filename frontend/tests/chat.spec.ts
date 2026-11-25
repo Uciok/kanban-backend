@@ -5,9 +5,9 @@ import { signIn, signInWithFreshBoard } from "./helpers";
 // The AI is mocked in the browser, so these tests do not call OpenRouter
 test.beforeEach(async ({ page }) => {
   const board = structuredClone(defaultBoard);
-  board.cards["card-ai"] = { id: "card-ai", title: "Made by AI", details: "From chat" };
+  board.cards["card-ai"] = { id: "card-ai", title: "Made by AI", details: "From chat", priority: null, dueDate: null, labels: [], checklist: [] };
   board.columns[1].cardIds.push("card-ai");
-  await page.route("/api/chat", (route) =>
+  await page.route("**/api/boards/*/chat", (route) =>
     route.fulfill({ json: { reply: "Added a card to Discovery.", board } })
   );
   await signInWithFreshBoard(page);

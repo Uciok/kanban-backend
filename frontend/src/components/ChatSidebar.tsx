@@ -4,6 +4,7 @@ import type { BoardData } from "@/lib/kanban";
 import { loadHistory, saveHistory, sendChat, type ChatMessage } from "@/lib/chat";
 
 type ChatSidebarProps = {
+  boardId: number;
   isOpen: boolean;
   onClose: () => void;
   onBoardChange: (board: BoardData) => void;
@@ -11,12 +12,13 @@ type ChatSidebarProps = {
 };
 
 export const ChatSidebar = ({
+  boardId,
   isOpen,
   onClose,
   onBoardChange,
   onBusyChange,
 }: ChatSidebarProps) => {
-  const [messages, setMessages] = useState<ChatMessage[]>(loadHistory);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory(boardId));
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
@@ -35,14 +37,14 @@ export const ChatSidebar = ({
     onBusyChange(true);
 
     try {
-      const { reply, board } = await sendChat(message, messages);
+      const { reply, board } = await sendChat(boardId, message, messages);
       const next: ChatMessage[] = [
         ...messages,
         { role: "user", content: message },
         { role: "assistant", content: reply },
       ];
       setMessages(next);
-      saveHistory(next);
+      saveHistory(boardId, next);
       if (board) {
         onBoardChange(board);
       }

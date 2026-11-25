@@ -1,3 +1,4 @@
+import { CardMeta } from "@/components/KanbanCard";
 import type { Card } from "@/lib/kanban";
 
 type KanbanCardPreviewProps = {
@@ -16,5 +17,6 @@ export const KanbanCardPreview = ({ card }: KanbanCardPreviewProps) => (
         </p>
       </div>
     </div>
+    <CardMeta card={card} />
   </article>
 );

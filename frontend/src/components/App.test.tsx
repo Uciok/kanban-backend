@@ -76,13 +76,13 @@ describe("App", () => {
 
   it("clears the chat history on logout", async () => {
     sessionStorage.setItem(
-      "pm-chat-history",
+      "pm-chat-history-1",
       JSON.stringify([{ role: "user", content: "Old question" }])
     );
     fakeBackend();
     render(<App />);
     await userEvent.click(await screen.findByRole("button", { name: "Log out" }));
     await screen.findByRole("heading", { name: "Sign in" });
-    expect(sessionStorage.getItem("pm-chat-history")).toBeNull();
+    expect(sessionStorage.getItem("pm-chat-history-1")).toBeNull();
   });
 });

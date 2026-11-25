@@ -20,3 +20,16 @@ def client():
 def signed_in(client):
     client.post("/api/auth/login", json={"username": "user", "password": "password"})
     return client
+
+
+@pytest.fixture
+def board_id(signed_in) -> int:
+    # The demo user's first board
+    return signed_in.get("/api/boards").json()[0]["id"]
+
+
+@pytest.fixture
+def other_client():
+    # A second, independent browser session
+    with TestClient(app) as client:
+        yield client

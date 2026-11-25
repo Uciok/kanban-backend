@@ -1,6 +1,6 @@
 # Kanban with backend
 
-A single-board Kanban app with sign in and a persistent board. Next.js frontend, FastAPI backend, SQLite, all in one Docker container. An AI chat sidebar can create, edit and move cards. Works on phones too.
+A Kanban project management app: user accounts, multiple boards per user, persistent boards. Next.js frontend, FastAPI backend, SQLite, all in one Docker container. An AI chat sidebar can create, edit and move cards. Works on phones too.
 
 ## Run
 
@@ -20,7 +20,7 @@ Then:
 ./scripts/stop.sh     # Windows: scripts/stop.ps1
 ```
 
-Open http://localhost:8000 (only reachable from this machine) and sign in with `user` / `password`. Board data is kept in the `pm-data` Docker volume.
+Open http://localhost:8000 (only reachable from this machine). Create an account, or sign in with the demo account `user` / `password`. Board data is kept in the `pm-data` Docker volume.
 
 ## Tests
 

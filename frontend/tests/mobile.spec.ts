@@ -10,7 +10,8 @@ test("board starts on the first screen", async ({ page }) => {
   const firstColumn = page.getByTestId("column-col-backlog");
   await expect(firstColumn).toBeInViewport();
   expect((await firstColumn.boundingBox())!.y).toBeLessThan(viewport.height / 2);
-  await expect(page.getByText("Keep momentum visible.")).toBeHidden();
+  // Desktop-only header text is hidden on phones
+  await expect(page.getByText("Project management", { exact: true })).toBeHidden();
 });
 
 test("columns are swiped sideways, one per screen", async ({ page }) => {

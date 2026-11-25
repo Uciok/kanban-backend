@@ -4,7 +4,7 @@ import { KanbanBoard } from "@/components/KanbanBoard";
 import { fakeBackend } from "@/test/fakeBackend";
 
 const renderBoard = async () => {
-  render(<KanbanBoard onLogout={() => {}} />);
+  render(<KanbanBoard boardId={1} onLogout={() => {}} />);
   await screen.findByRole("heading", { name: "Kanban Studio" });
 };
 
@@ -79,6 +79,15 @@ describe("KanbanBoard", () => {
       id: "card-1",
       title: "Updated title",
       details: "Updated details",
+      // Fields not touched in the form stay as they were
+      priority: "high",
+      dueDate: null,
+      labels: ["planning"],
+      checklist: [
+        { id: "item-1", text: "Collect input from team leads", done: true },
+        { id: "item-2", text: "Draft three themes", done: false },
+        { id: "item-3", text: "Review with leadership", done: false },
+      ],
     });
   });
 

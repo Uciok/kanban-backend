@@ -24,16 +24,16 @@ Frontend (from `frontend/`):
 ## Architecture
 
 - One container: a multi-stage Dockerfile builds the Next.js static export, then copies it to `/app/static` in the Python image. FastAPI (`backend/app/main.py`) serves `/api/*` and mounts the static files at `/` last so API routes win. There is no Next server at runtime, so the frontend is client-only and talks to `/api` with same-origin cookies.
-- Auth: hardcoded `user` / `password`, session in a Starlette signed cookie. Protected routes use `Depends(current_user)`.
-- Data: each user's board is one JSON blob in SQLite (`boards.data`) in exactly the frontend's `BoardData` shape (`columns[]` with ordered `cardIds`, `cards` map). The frontend saves the whole board with `PUT /api/board` after every change (last write wins). The Pydantic `Board` in `backend/app/models.py` and the TS types in `frontend/src/lib/kanban.ts` must stay in sync.
+- Auth: user accounts in SQLite with scrypt password hashes (demo account `user` / `password` seeded on startup). The session (Starlette signed cookie) holds `user_id`; protected routes use the `UserId` dependency, and every board query is scoped to that user (another user's board is 404).
+- Data: users have many boards; each board's contents are one JSON blob in SQLite (`boards.data`) in exactly the frontend's `BoardData` shape (`columns[]` with ordered `cardIds`, `cards` map). Schema changes go through `PRAGMA user_version` migrations in `db.init_db` (see `docs/DATABASE.md`). The frontend saves the whole board with `PUT /api/boards/{id}` after every change, one save at a time. The Pydantic `Board` in `backend/app/models.py` and the TS types in `frontend/src/lib/kanban.ts` must stay in sync.
 - Default board: `backend/app/default_board.json` is the source of truth; `frontend/src/test/board.ts` mirrors it for tests.
-- AI chat: `POST /api/chat` sends board + history + message to OpenRouter (`backend/app/ai.py`) using strict structured output `{reply, board | null}`. Strict schemas forbid free-form maps, so the AI returns cards as a list and the backend converts it back. `apply_update` rejects any change to columns or any card not in exactly one column (502, board unchanged). Chat history lives only in the browser (`sessionStorage`) and is cleared on logout.
+- AI chat: `POST /api/boards/{id}/chat` sends board + history + message to OpenRouter (`backend/app/ai.py`) using strict structured output `{reply, board | null}`. Strict schemas forbid free-form maps and defaults, so the AI returns `AICard`s (all fields required) as a list and the backend validates them into the `Card` map. `apply_update` rejects any change to columns or any card not in exactly one column (502, board unchanged). Chat history lives only in the browser (`sessionStorage`, per board) and is cleared on logout.
 
 ## Testing notes
 
-- Backend tests use a temp DB per test (autouse fixture in `conftest.py`) and always mock the AI (`ai.chat`, `ai.ask` or `ai.client`). Never call OpenRouter in tests.
+- Backend tests use a temp DB per test (autouse fixture in `conftest.py`; `signed_in`, `board_id`, `other_client` fixtures) and always mock the AI (`ai.chat`, `ai.ask` or `ai.client`). Never call OpenRouter in tests.
 - Frontend unit tests stub `fetch` with the in-memory backend in `src/test/fakeBackend.ts`.
-- E2E tests share the real database, so they run with one worker and start with `signInWithFreshBoard`. `tests/chat.spec.ts` mocks `/api/chat` via `page.route`. Don't select by `role="alert"` (Next's route announcer); match card buttons by exact name.
+- E2E tests share the real database, so they run with one worker and start with `signInWithFreshBoard` (resets the demo user to one board); tests that create accounts use `uniqueUsername`. `tests/chat.spec.ts` mocks `/api/boards/*/chat` via `page.route`. Don't select by `role="alert"` (Next's route announcer); match card buttons by exact name.
 - Aim for about 80% coverage only where it comes naturally; never add tests just to raise the number.
 
 ## Git

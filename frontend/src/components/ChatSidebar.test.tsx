@@ -5,7 +5,7 @@ import { cloneBoard } from "@/test/board";
 import { fakeBackend, jsonResponse } from "@/test/fakeBackend";
 
 const renderBoard = async () => {
-  const view = render(<KanbanBoard onLogout={() => {}} />);
+  const view = render(<KanbanBoard boardId={1} onLogout={() => {}} />);
   await screen.findByRole("heading", { name: "Kanban Studio" });
   return view;
 };
@@ -47,8 +47,9 @@ describe("ChatSidebar", () => {
     await send("Second");
     expect(await screen.findByText("You said: Second")).toBeInTheDocument();
 
-    expect(backend.chatRequests[0]).toEqual({ message: "First", history: [] });
+    expect(backend.chatRequests[0]).toEqual({ boardId: 1, message: "First", history: [] });
     expect(backend.chatRequests[1]).toEqual({
+      boardId: 1,
       message: "Second",
       history: [
         { role: "user", content: "First" },
@@ -59,7 +60,15 @@ describe("ChatSidebar", () => {
 
   it("refreshes the board when the AI changes it", async () => {
     const updated = cloneBoard();
-    updated.cards["card-ai"] = { id: "card-ai", title: "Made by AI", details: "From chat" };
+    updated.cards["card-ai"] = {
+      id: "card-ai",
+      title: "Made by AI",
+      details: "From chat",
+      priority: null,
+      dueDate: null,
+      labels: [],
+      checklist: [],
+    };
     updated.columns[1].cardIds.push("card-ai");
     const backend = fakeBackend({
       chat: () => jsonResponse(200, { reply: "Added it", board: updated }),
@@ -104,7 +113,7 @@ describe("ChatSidebar", () => {
     expect(await screen.findByText("The AI tried to change the columns")).toBeInTheDocument();
     expect(screen.getByLabelText("Message")).toHaveValue("Rename a column");
     expect(screen.queryByTestId("chat-user")).not.toBeInTheDocument();
-    expect(sessionStorage.getItem("pm-chat-history")).toBeNull();
+    expect(sessionStorage.getItem("pm-chat-history-1")).toBeNull();
   });
 
   it("shows a readable error when the server error is not JSON", async () => {

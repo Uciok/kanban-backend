@@ -1,10 +1,11 @@
 import os
+from datetime import date
 from typing import Literal
 
 from openai import LengthFinishReasonError, OpenAI, OpenAIError
 from pydantic import BaseModel, ValidationError
 
-from app.models import Board, Card, Column
+from app.models import Board, Priority
 
 BASE_URL = "https://openrouter.ai/api/v1"
 MODEL = "openai/gpt-oss-120b"
@@ -24,6 +25,12 @@ Reply with:
 (same ids, titles and order as now) and every card that should remain. Each card must appear in exactly one \
 column's cardIds. New cards need a new unique id like "card-<short-random-text>".
 
+Each card has: title; details; priority ("low", "medium", "high" or null); dueDate ("YYYY-MM-DD" or null); \
+labels (a list of short words, at most 8, each up to 24 characters); checklist (up to 20 items, each \
+{{id, text, done}}; new items need a new unique id like "item-<short-random-text>"). Keep fields you are not asked to change.
+
+Today is {today}.
+
 Current board:
 """
 
@@ -32,10 +39,35 @@ class AIError(Exception):
     pass
 
 
+class AIChecklistItem(BaseModel):
+    id: str
+    text: str
+    done: bool
+
+
+class AICard(BaseModel):
+    # Every field required and no defaults: strict structured outputs need that.
+    # Values are checked when converted to a Card in apply_update
+    id: str
+    title: str
+    details: str
+    priority: Priority | None
+    dueDate: str | None
+    labels: list[str]
+    checklist: list[AIChecklistItem]
+
+
+class AIColumn(BaseModel):
+    # Plain fields only (no length limits); checked when converted to a Board
+    id: str
+    title: str
+    cardIds: list[str]
+
+
 class AIBoard(BaseModel):
     # Cards as a list: strict structured outputs do not allow free-form maps
-    columns: list[Column]
-    cards: list[Card]
+    columns: list[AIColumn]
+    cards: list[AICard]
 
 
 class ChatResult(BaseModel):
@@ -76,7 +108,7 @@ def ask(prompt: str) -> str:
 
 def chat(board: Board, history: list[Message], message: str) -> ChatResult:
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT + board.model_dump_json()},
+        {"role": "system", "content": SYSTEM_PROMPT.format(today=date.today().isoformat()) + board.model_dump_json()},
         *(m.model_dump() for m in history[-HISTORY_LIMIT:]),
         {"role": "user", "content": message},
     ]
@@ -108,7 +140,9 @@ def apply_update(current: Board, proposed: AIBoard) -> Board:
     if len({card.id for card in proposed.cards}) != len(proposed.cards):
         raise AIError("The AI returned the same card twice, so the update was not applied")
     try:
-        # Board checks that every card is in exactly one column
-        return Board(columns=proposed.columns, cards={card.id: card for card in proposed.cards})
+        # Board checks the card fields and that every card is in exactly one column
+        return Board.model_validate(
+            {"columns": proposed.model_dump()["columns"], "cards": {card.id: card.model_dump() for card in proposed.cards}}
+        )
     except ValidationError as error:
-        raise AIError("The AI returned cards that do not match the columns, so the update was not applied") from error
+        raise AIError("The AI returned an invalid board, so the update was not applied") from error

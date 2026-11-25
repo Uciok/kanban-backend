@@ -202,3 +202,63 @@ Success: user can chat with the AI and see board changes appear without reloadin
 - [ ] User checks on a real phone
 
 Success: the app is comfortable to use on a phone; all tests pass.
+
+---
+
+# Phase 2: Full project management app
+
+Goal: go beyond the MVP limits (one hardcoded user, one board). Built in small steps, each with backend tests, frontend unit tests and e2e tests. The MVP limitations in `AGENTS.md` are lifted by this phase.
+
+## Part 12: User accounts
+
+- [x] Passwords hashed with stdlib `hashlib.scrypt` (random salt), stored in `users.password_hash`
+- [x] `POST /api/auth/register` (username 3-32 chars `[A-Za-z0-9_.-]`, password 8+ chars; 409 if taken), signs in
+- [x] Login checks the database; the demo account `user` / `password` is still seeded on startup
+- [x] Session stores the user id; `current_user` checks the user still exists
+- [x] `POST /api/auth/password` (change password, needs current password), `DELETE /api/auth/me` (delete account and its boards, needs password)
+- [x] Frontend: sign up form (toggle from sign in), account menu with change password and delete account
+- [x] Tests: backend for every route and error case; unit; e2e sign up, sign in as the new user, change password, delete account
+
+## Part 13: Multiple boards
+
+- [x] Schema: `boards` gets `name` and `created_at`, no `UNIQUE` on `user_id`. `PRAGMA user_version` migrations: existing databases are migrated in place (old board becomes "My board")
+- [x] Routes: `GET /api/boards`, `POST /api/boards {name}`, `GET/PUT/PATCH/DELETE /api/boards/{id}`, `POST /api/boards/{id}/chat`. Another user's board is 404. Deleting the last board is rejected (409). Old `/api/board` and `/api/chat` removed
+- [x] A new user gets the demo board; new boards get the same columns with no cards
+- [x] Frontend: board switcher in the header (list, create, rename, delete); last opened board remembered in `localStorage`; chat history kept per board
+- [x] Tests: backend per route, isolation between users, migration from the old schema; unit; e2e create, switch, rename, delete boards
+
+## Part 14: Richer cards
+
+- [x] Cards get optional `priority` (`low` / `medium` / `high`), `dueDate` (ISO date) and `labels` (short strings). Old boards load unchanged (defaults); the AI can set them (strict schema: nullable fields)
+- [x] Card shows a priority badge, due date (overdue highlighted) and labels; the edit form has inputs for them
+- [x] Filter bar: text search (title, details, labels), priority filter; filtered-out cards are hidden, drag and drop still works on what is shown
+- [x] Tests: backend model defaults and validation; AI round trip; unit for display, editing and filtering; e2e set fields and filter
+
+## Part 15: Column management
+
+- [x] Add a column (up to 12), delete an empty column (disabled while it has cards or is the last), reorder columns (move left / right). A column rename left blank restores the old title
+- [x] The AI may still only change cards; the column check compares against the board as stored
+- [x] Tests: backend validation; unit; e2e add, reorder, delete column
+
+## Part 16: Board overview
+
+- [x] Header summary for the open board: total cards, overdue (highlighted when > 0), due this week, high priority. Replaces the static "Focus" box and the column chips (each column already shows its count)
+- [x] Tests: unit for `boardStats` and `addDays`; component test that the summary follows edits; e2e checks the summary after setting fields
+
+## Part 17: Card checklists
+
+- [x] Cards get an optional checklist: items `{id, text, done}` (up to 20, text 1-120 chars). Old cards load with an empty list; the AI can read and set it
+- [x] Card shows progress ("2/5") when it has items; the card expands to tick items directly; the edit form adds, ticks, renames and removes items
+- [x] Tests: backend validation and defaults; AI schema stays plain; unit for editing and progress; e2e add and tick items, persists
+
+## Part 18: Activity log
+
+- [x] `board_events` table (board, user, time, summary text). The backend records board created / renamed, cards added / moved / edited / deleted (by diffing the saved board against the stored one), columns added / removed / reordered, and AI updates
+- [x] `GET /api/boards/{id}/activity` (latest 50, newest first); events go with the board when it is deleted
+- [x] Activity panel in the UI listing the events with relative times
+- [x] Tests: backend diff summaries and route; unit for the panel; e2e an edit shows up in the activity
+
+## Part 19: Export
+
+- [ ] Download the open board as JSON (the stored shape) and as CSV (one row per card: column, title, details, priority, due date, labels)
+- [ ] Tests: unit for the CSV conversion (quoting, commas, line breaks); e2e download
