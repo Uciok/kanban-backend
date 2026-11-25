@@ -54,11 +54,7 @@ class PasswordConfirmation(BaseModel):
     password: str
 
 
-class BoardCreate(BaseModel):
-    name: BoardName
-
-
-class BoardRename(BaseModel):
+class BoardNameRequest(BaseModel):
     name: BoardName
 
 
@@ -145,7 +141,7 @@ def me(user_id: UserId):
 
 @app.post("/api/auth/password", status_code=204)
 def change_password(change: PasswordChange, user_id: UserId):
-    if db.authenticate(db.get_username(user_id), change.current_password) is None:
+    if not db.check_user_password(user_id, change.current_password):
         raise HTTPException(status_code=403, detail="Current password is incorrect")
     db.set_password(user_id, change.new_password)
     return Response(status_code=204)
@@ -153,7 +149,7 @@ def change_password(change: PasswordChange, user_id: UserId):
 
 @app.delete("/api/auth/me", status_code=204)
 def delete_account(confirmation: PasswordConfirmation, user_id: UserId, request: Request):
-    if db.authenticate(db.get_username(user_id), confirmation.password) is None:
+    if not db.check_user_password(user_id, confirmation.password):
         raise HTTPException(status_code=403, detail="Password is incorrect")
     db.delete_user(user_id)
     request.session.clear()
@@ -170,13 +166,17 @@ def board_or_404(user_id: int, board_id: int) -> dict:
     return found
 
 
+def stored_board(user_id: int, board_id: int) -> Board:
+    return Board.model_validate(board_or_404(user_id, board_id)["board"])
+
+
 @app.get("/api/boards")
 def list_boards(user_id: UserId) -> list[BoardSummary]:
     return db.list_boards(user_id)
 
 
 @app.post("/api/boards", status_code=201)
-def create_board(new: BoardCreate, user_id: UserId) -> BoardSummary:
+def create_board(new: BoardNameRequest, user_id: UserId) -> BoardSummary:
     created = db.create_board(user_id, new.name)
     db.add_events(user_id, created["id"], ["Created the board"])
     return created
@@ -189,19 +189,18 @@ def read_board(board_id: int, user_id: UserId) -> BoardDetail:
 
 @app.put("/api/boards/{board_id}")
 def write_board(board_id: int, board: Board, user_id: UserId) -> Board:
-    stored = Board.model_validate(board_or_404(user_id, board_id)["board"])
-    db.save_board(user_id, board_id, board.model_dump())
-    db.add_events(user_id, board_id, activity.describe_changes(stored, board))
+    stored = stored_board(user_id, board_id)
+    db.save_board(user_id, board_id, board.model_dump(), activity.describe_changes(stored, board))
     return board
 
 
 @app.patch("/api/boards/{board_id}")
-def rename_board(board_id: int, rename: BoardRename, user_id: UserId) -> BoardSummary:
+def rename_board(board_id: int, rename: BoardNameRequest, user_id: UserId) -> BoardSummary:
     old_name = board_or_404(user_id, board_id)["name"]
-    db.rename_board(user_id, board_id, rename.name)
+    renamed = db.rename_board(user_id, board_id, rename.name)
     if rename.name != old_name:
         db.add_events(user_id, board_id, [f'Renamed the board to "{rename.name}"'])
-    return next(b for b in db.list_boards(user_id) if b["id"] == board_id)
+    return renamed
 
 
 @app.delete("/api/boards/{board_id}", status_code=204)
@@ -229,7 +228,7 @@ def ai_test(user_id: UserId):
 
 @app.post("/api/boards/{board_id}/chat")
 def chat(board_id: int, request: ChatRequest, user_id: UserId) -> ChatResponse:
-    board = Board.model_validate(board_or_404(user_id, board_id)["board"])
+    board = stored_board(user_id, board_id)
     try:
         result = ai.chat(board, request.history, request.message)
         if result.board is None:
@@ -237,8 +236,8 @@ def chat(board_id: int, request: ChatRequest, user_id: UserId) -> ChatResponse:
         updated = ai.apply_update(board, result.board)
     except ai.AIError as error:
         raise HTTPException(status_code=502, detail=str(error))
-    db.save_board(user_id, board_id, updated.model_dump())
-    db.add_events(user_id, board_id, [f"AI: {summary}" for summary in activity.describe_changes(board, updated)])
+    summaries = [f"AI: {summary}" for summary in activity.describe_changes(board, updated)]
+    db.save_board(user_id, board_id, updated.model_dump(), summaries)
     return ChatResponse(reply=result.reply, board=updated)
 
 

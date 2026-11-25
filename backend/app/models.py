@@ -1,3 +1,4 @@
+import re
 from datetime import date
 from typing import Annotated, Literal, Self
 
@@ -9,9 +10,9 @@ Label = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, ma
 
 def check_date(value: str) -> str:
     # Stored as "YYYY-MM-DD"; must be a real date
-    date.fromisoformat(value)
-    if len(value) != 10:
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
         raise ValueError("Dates must be YYYY-MM-DD")
+    date.fromisoformat(value)
     return value
 
 

@@ -18,7 +18,7 @@ def test_cards_saved_before_the_new_fields_load_with_defaults(signed_in, board_i
         del card["priority"], card["dueDate"], card["labels"]
     # Written straight to the database, as boards saved by older versions are
     user_id = db.authenticate("user", "password")
-    db.save_board(user_id, board_id, old)
+    db.save_board(user_id, board_id, old, [])
 
     card = signed_in.get(f"/api/boards/{board_id}").json()["board"]["cards"]["card-1"]
     assert card["priority"] is None
@@ -45,6 +45,7 @@ def test_card_fields_round_trip(signed_in, board_id):
         ("priority", "urgent"),
         ("dueDate", "2026-13-01"),
         ("dueDate", "20261201"),
+        ("dueDate", "2026-W01-1"),
         ("dueDate", "next week"),
         ("labels", ["x" * 25]),
         ("labels", ["   "]),

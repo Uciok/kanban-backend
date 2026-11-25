@@ -75,18 +75,20 @@ def connect() -> Iterator[sqlite3.Connection]:
         conn.close()
 
 
+def scrypt(password: str, salt: bytes) -> bytes:
+    return hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1)
+
+
 def hash_password(password: str) -> str:
     salt = secrets.token_bytes(16)
-    digest = hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1)
-    return f"scrypt${salt.hex()}${digest.hex()}"
+    return f"scrypt${salt.hex()}${scrypt(password, salt).hex()}"
 
 
 def check_password(password: str, stored: str | None) -> bool:
     if not stored:
         return False
     _, salt, digest = stored.split("$")
-    candidate = hashlib.scrypt(password.encode(), salt=bytes.fromhex(salt), n=2**14, r=8, p=1)
-    return hmac.compare_digest(candidate.hex(), digest)
+    return hmac.compare_digest(scrypt(password, bytes.fromhex(salt)).hex(), digest)
 
 
 def empty_board() -> dict:
@@ -108,10 +110,14 @@ def init_db(seed_user: str, seed_password: str) -> None:
         conn.executescript(SCHEMA)
         conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         conn.execute("INSERT OR IGNORE INTO users (username) VALUES (?)", (seed_user,))
-        conn.execute(
-            "UPDATE users SET password_hash = ? WHERE username = ? AND password_hash IS NULL",
-            (hash_password(seed_password), seed_user),
-        )
+        # Hashing is slow, so only do it when the seed user has no password yet
+        needs_password = conn.execute(
+            "SELECT 1 FROM users WHERE username = ? AND password_hash IS NULL", (seed_user,)
+        ).fetchone()
+        if needs_password:
+            conn.execute(
+                "UPDATE users SET password_hash = ? WHERE username = ?", (hash_password(seed_password), seed_user)
+            )
 
 
 # Users
@@ -139,6 +145,12 @@ def authenticate(username: str, password: str) -> int | None:
     return None
 
 
+def check_user_password(user_id: int, password: str) -> bool:
+    with connect() as conn:
+        row = conn.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
+    return row is not None and check_password(password, row["password_hash"])
+
+
 def get_username(user_id: int) -> str | None:
     with connect() as conn:
         row = conn.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone()
@@ -162,25 +174,26 @@ def delete_user(user_id: int) -> None:
 def list_boards(user_id: int) -> list[dict]:
     """The user's boards, oldest first. A user with no boards gets the demo board."""
     with connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO boards (user_id, name, data)
+            SELECT ?, 'My board', ?
+            WHERE NOT EXISTS (SELECT 1 FROM boards WHERE user_id = ?)
+            """,
+            (user_id, DEFAULT_BOARD, user_id),
+        )
         rows = conn.execute(
             "SELECT id, name, updated_at FROM boards WHERE user_id = ? ORDER BY id", (user_id,)
         ).fetchall()
-        if not rows:
-            conn.execute(
-                "INSERT INTO boards (user_id, name, data) VALUES (?, ?, ?)", (user_id, "My board", DEFAULT_BOARD)
-            )
-            rows = conn.execute(
-                "SELECT id, name, updated_at FROM boards WHERE user_id = ? ORDER BY id", (user_id,)
-            ).fetchall()
     return [dict(row) for row in rows]
 
 
 def create_board(user_id: int, name: str) -> dict:
     with connect() as conn:
-        cursor = conn.execute(
-            "INSERT INTO boards (user_id, name, data) VALUES (?, ?, ?)", (user_id, name, json.dumps(empty_board()))
-        )
-        row = conn.execute("SELECT id, name, updated_at FROM boards WHERE id = ?", (cursor.lastrowid,)).fetchone()
+        row = conn.execute(
+            "INSERT INTO boards (user_id, name, data) VALUES (?, ?, ?) RETURNING id, name, updated_at",
+            (user_id, name, json.dumps(empty_board())),
+        ).fetchone()
     return dict(row)
 
 
@@ -195,22 +208,28 @@ def get_board(user_id: int, board_id: int) -> dict | None:
     return {"id": row["id"], "name": row["name"], "board": json.loads(row["data"])}
 
 
-def save_board(user_id: int, board_id: int, board: dict) -> bool:
+def save_board(user_id: int, board_id: int, board: dict, summaries: list[str]) -> None:
+    """Saves the board and records its activity events in one transaction."""
     with connect() as conn:
-        cursor = conn.execute(
+        conn.execute(
             "UPDATE boards SET data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?",
             (json.dumps(board), board_id, user_id),
         )
-    return cursor.rowcount == 1
+        insert_events(conn, user_id, board_id, summaries)
 
 
-def rename_board(user_id: int, board_id: int, name: str) -> bool:
+def rename_board(user_id: int, board_id: int, name: str) -> dict | None:
+    """Returns the board's summary, or None if the board does not exist or is not the user's."""
     with connect() as conn:
-        cursor = conn.execute(
-            "UPDATE boards SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?",
+        row = conn.execute(
+            """
+            UPDATE boards SET name = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND user_id = ?
+            RETURNING id, name, updated_at
+            """,
             (name, board_id, user_id),
-        )
-    return cursor.rowcount == 1
+        ).fetchone()
+    return dict(row) if row else None
 
 
 def count_boards(user_id: int) -> int:
@@ -218,21 +237,24 @@ def count_boards(user_id: int) -> int:
         return conn.execute("SELECT COUNT(*) FROM boards WHERE user_id = ?", (user_id,)).fetchone()[0]
 
 
-def delete_board(user_id: int, board_id: int) -> bool:
+def delete_board(user_id: int, board_id: int) -> None:
     with connect() as conn:
-        cursor = conn.execute("DELETE FROM boards WHERE id = ? AND user_id = ?", (board_id, user_id))
-    return cursor.rowcount == 1
+        conn.execute("DELETE FROM boards WHERE id = ? AND user_id = ?", (board_id, user_id))
 
 
 # Activity
 
 
+def insert_events(conn: sqlite3.Connection, user_id: int, board_id: int, summaries: list[str]) -> None:
+    conn.executemany(
+        "INSERT INTO board_events (board_id, user_id, summary) VALUES (?, ?, ?)",
+        [(board_id, user_id, summary) for summary in summaries],
+    )
+
+
 def add_events(user_id: int, board_id: int, summaries: list[str]) -> None:
     with connect() as conn:
-        conn.executemany(
-            "INSERT INTO board_events (board_id, user_id, summary) VALUES (?, ?, ?)",
-            [(board_id, user_id, summary) for summary in summaries],
-        )
+        insert_events(conn, user_id, board_id, summaries)
 
 
 def list_events(user_id: int, board_id: int, limit: int = 50) -> list[dict]:
