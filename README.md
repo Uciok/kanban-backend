@@ -1,6 +1,6 @@
 # Kanban with backend
 
-A single-board Kanban app with sign in and a persistent board. Next.js frontend, FastAPI backend, SQLite, all in one Docker container. An AI chat sidebar that can edit the board is in progress (see `docs/PLAN.md`).
+A single-board Kanban app with sign in and a persistent board. Next.js frontend, FastAPI backend, SQLite, all in one Docker container. An AI chat sidebar can create, edit and move cards. Works on phones too.
 
 ## Run
 
