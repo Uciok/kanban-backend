@@ -16,7 +16,7 @@ The current board is below as JSON. Columns are in display order; each column li
 You may create, edit, move, reorder and delete cards. You must not add, remove, rename or reorder columns.
 
 Reply with:
-- reply: your message to the user
+- reply: your message to the user, as plain text. The app does not render Markdown, so never use asterisks, underscores, backticks or # headings. Use line breaks and "- " for lists. Refer to cards by title, never by id.
 - board: null if the board should not change. Otherwise the complete updated board, with every column \
 (same ids, titles and order as now) and every card that should remain. Each card must appear in exactly one \
 column's cardIds. New cards need a new unique id like "card-<short-random-text>".

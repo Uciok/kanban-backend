@@ -62,4 +62,16 @@ describe("App", () => {
     await screen.findByRole("heading", { name: "Kanban Studio" });
     expect(screen.queryByText("Prototype analytics view")).not.toBeInTheDocument();
   });
+
+  it("clears the chat history on logout", async () => {
+    sessionStorage.setItem(
+      "pm-chat-history",
+      JSON.stringify([{ role: "user", content: "Old question" }])
+    );
+    fakeBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Log out" }));
+    await screen.findByRole("heading", { name: "Sign in" });
+    expect(sessionStorage.getItem("pm-chat-history")).toBeNull();
+  });
 });

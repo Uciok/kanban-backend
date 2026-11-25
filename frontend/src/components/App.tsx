@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { LoginForm } from "@/components/LoginForm";
 import { getCurrentUser, logout } from "@/lib/auth";
+import { clearHistory } from "@/lib/chat";
 
 export const App = () => {
   // undefined while checking the session, null when signed out
@@ -14,6 +15,7 @@ export const App = () => {
   }, []);
 
   const handleLogout = async () => {
+    clearHistory();
     await logout();
     setUser(null);
   };

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import clsx from "clsx";
 import {
   DndContext,
   DragOverlay,
@@ -13,6 +14,7 @@ import {
 } from "@dnd-kit/core";
 import { KanbanColumn } from "@/components/KanbanColumn";
 import { KanbanCardPreview } from "@/components/KanbanCardPreview";
+import { ChatSidebar } from "@/components/ChatSidebar";
 import { getBoard, saveBoard } from "@/lib/api";
 import { createId, moveCard, type BoardData } from "@/lib/kanban";
 
@@ -23,6 +25,9 @@ type KanbanBoardProps = {
 export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
   const [board, setBoard] = useState<BoardData | null>(null);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  // Board is locked while the AI is answering, so its update cannot overwrite manual edits
+  const [isLocked, setIsLocked] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -115,7 +120,8 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
   const activeCard = activeCardId ? board.cards[activeCardId] : null;
 
   return (
-    <div className="relative overflow-hidden">
+    // On wide screens the board makes room for the open chat instead of being covered
+    <div className={clsx("relative overflow-hidden", isChatOpen && "lg:pr-[340px]")}>
       <div className="pointer-events-none absolute left-0 top-0 h-[420px] w-[420px] -translate-x-1/3 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,_rgba(32,157,215,0.25)_0%,_rgba(32,157,215,0.05)_55%,_transparent_70%)]" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-[520px] w-[520px] translate-x-1/4 translate-y-1/4 rounded-full bg-[radial-gradient(circle,_rgba(117,57,145,0.18)_0%,_rgba(117,57,145,0.05)_55%,_transparent_75%)]" />
 
@@ -145,6 +151,13 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
               </div>
               <button
                 type="button"
+                onClick={() => setIsChatOpen(true)}
+                className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
+              >
+                AI chat
+              </button>
+              <button
+                type="button"
                 onClick={onLogout}
                 className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
               >
@@ -165,35 +178,47 @@ export const KanbanBoard = ({ onLogout }: KanbanBoardProps) => {
           </div>
         </header>
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
+        <div
+          inert={isLocked}
+          className={isLocked ? "opacity-60" : undefined}
+          data-testid="board"
         >
-          <section className="grid gap-6 lg:grid-cols-5">
-            {board.columns.map((column) => (
-              <KanbanColumn
-                key={column.id}
-                column={column}
-                cards={column.cardIds.map((cardId) => board.cards[cardId])}
-                onRename={handleRenameColumn}
-                onRenameDone={handleRenameDone}
-                onAddCard={handleAddCard}
-                onDeleteCard={handleDeleteCard}
-                onEditCard={handleEditCard}
-              />
-            ))}
-          </section>
-          <DragOverlay>
-            {activeCard ? (
-              <div className="w-[260px]">
-                <KanbanCardPreview card={activeCard} />
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <section className="grid gap-6 lg:grid-cols-5">
+              {board.columns.map((column) => (
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
+                  cards={column.cardIds.map((cardId) => board.cards[cardId])}
+                  onRename={handleRenameColumn}
+                  onRenameDone={handleRenameDone}
+                  onAddCard={handleAddCard}
+                  onDeleteCard={handleDeleteCard}
+                  onEditCard={handleEditCard}
+                />
+              ))}
+            </section>
+            <DragOverlay>
+              {activeCard ? (
+                <div className="w-[260px]">
+                  <KanbanCardPreview card={activeCard} />
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
       </main>
+      <ChatSidebar
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onBoardChange={setBoard}
+        onBusyChange={setIsLocked}
+      />
     </div>
   );
 };

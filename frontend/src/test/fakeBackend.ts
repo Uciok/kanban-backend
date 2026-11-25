@@ -1,14 +1,23 @@
 import type { BoardData } from "@/lib/kanban";
+import type { ChatMessage } from "@/lib/chat";
 import { cloneBoard } from "@/test/board";
 
-const jsonResponse = (status: number, body: unknown) =>
+export const jsonResponse = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status });
 
-// Stubs fetch with an in-memory version of the backend API
-export const fakeBackend = ({ signedIn = true } = {}) => {
+type ChatRequest = { message: string; history: ChatMessage[] };
+type ChatHandler = (request: ChatRequest) => Promise<Response> | Response;
+
+// Stubs fetch with an in-memory version of the backend API.
+// `chat` decides the /api/chat response; by default the AI replies without changing the board.
+export const fakeBackend = ({
+  signedIn = true,
+  chat = (() => jsonResponse(200, { reply: "Hi", board: null })) as ChatHandler,
+} = {}) => {
   let session = signedIn;
   let board: BoardData = cloneBoard();
   const saves: BoardData[] = [];
+  const chatRequests: ChatRequest[] = [];
 
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? "GET";
@@ -32,9 +41,14 @@ export const fakeBackend = ({ signedIn = true } = {}) => {
       saves.push(board);
       return jsonResponse(200, board);
     }
+    if (url === "/api/chat") {
+      const request = JSON.parse(init!.body as string);
+      chatRequests.push(request);
+      return chat(request);
+    }
     throw new Error(`Unexpected request: ${method} ${url}`);
   });
   vi.stubGlobal("fetch", fetchMock);
 
-  return { saves, savedBoard: () => board };
+  return { saves, chatRequests, savedBoard: () => board };
 };

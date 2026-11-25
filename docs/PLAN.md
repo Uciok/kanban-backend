@@ -26,8 +26,9 @@ AI
 - OpenRouter via the `openai` SDK, model `openai/gpt-oss-120b`, then `OPENROUTER_FALLBACK_MODELS` in order as OpenRouter's `models` fallback list
 - Chat uses strict structured outputs: `{ reply, board | null }`, `board` being the full updated board with cards as a list (strict schemas do not allow free-form maps); the backend converts it back. `provider.require_parameters` limits routing (fallbacks included) to providers that support structured outputs
 - AI may only change cards. The backend rejects updates that change column ids, titles or order, or where a card is not in exactly one column (502, board unchanged)
+- The system prompt asks for plain-text replies (no Markdown, since the app shows plain text) and to refer to cards by title, not id
 - Chat history lives in the browser (`sessionStorage`, so it survives a reload and is cleared on logout) and is sent with each request; only `user` and `assistant` roles are accepted
-- Chat sidebar: closed by default, plain-text replies, board locked while the AI is answering, no clear-chat button
+- Chat sidebar: closed by default, plain-text replies, board locked while the AI is answering, no clear-chat button. It is 340px wide and fixed on the right; on wide screens (`lg`) the board makes room for it (right padding) instead of being covered, so the columns get narrower while it is open. On an AI error the message goes back into the input and is not added to the history
 
 Testing
 - Backend: pytest with `TestClient`, a temp database per test, AI always mocked
@@ -174,13 +175,13 @@ Risk: not every OpenRouter provider (or fallback model) supports structured outp
 
 ## Part 10: AI chat sidebar
 
-- [ ] Sidebar on the right, closed by default, opened from a header button and closable; message list, input and send button, in the project color scheme
-- [ ] Replies shown as plain text (line breaks kept, no Markdown rendering)
-- [ ] History kept in `sessionStorage`, sent with each message: survives a reload, cleared on logout
-- [ ] While waiting for the AI: loading state, Send disabled and the board locked (`inert`); error message on failure
-- [ ] When the response includes a board, update the board on screen right away
-- [ ] Unit tests (fetch mocked): send message, show reply, board refreshes when the AI returns a board, error shown
-- [ ] E2E with the AI mocked at the network level (Playwright route): chat flow and board refresh
+- [x] Sidebar on the right, closed by default, opened from a header button and closable; message list, input and send button, in the project color scheme
+- [x] Replies shown as plain text (line breaks kept, no Markdown rendering)
+- [x] History kept in `sessionStorage`, sent with each message: survives a reload, cleared on logout
+- [x] While waiting for the AI: loading state, Send disabled and the board locked (`inert`); error message on failure
+- [x] When the response includes a board, update the board on screen right away
+- [x] Unit tests (fetch mocked): send message, show reply, history sent, board refreshes when the AI returns a board, board locked while waiting, error shown, history survives a reload and is cleared on logout
+- [x] E2E with the AI mocked at the network level (Playwright route): chat flow and board refresh
 - [ ] Manual check with the real model
 
 Success: user can chat with the AI and see board changes appear without reloading; all tests pass.
