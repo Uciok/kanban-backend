@@ -1,18 +1,9 @@
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { KanbanBoard } from "@/components/KanbanBoard";
 import { fakeBackend } from "@/test/fakeBackend";
-
-const renderBoard = async () => {
-  render(<KanbanBoard boardId={1} onLogout={() => {}} />);
-  await screen.findByRole("heading", { name: "Kanban Studio" });
-};
+import { renderBoard } from "@/test/renderBoard";
 
 const card = (id: string) => screen.getByTestId(`card-${id}`);
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 describe("checklists", () => {
   it("shows progress and only cards with a checklist get one", async () => {

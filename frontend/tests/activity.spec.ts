@@ -1,14 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { nextSave, uniqueUsername } from "./helpers";
+import { nextSave, signUp, uniqueUsername } from "./helpers";
 
 // A fresh account, so the log holds only this test's changes
 test("changes show up in the board's activity", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Create an account" }).click();
-  await page.getByLabel("Username").fill(uniqueUsername("dana"));
-  await page.getByLabel("Password").fill("secret-pass");
-  await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page.getByRole("heading", { name: "Kanban Studio" })).toBeVisible();
+  await signUp(page, uniqueUsername("dana"), "secret-pass");
 
   const column = page.getByTestId("column-col-backlog");
   await column.getByRole("button", { name: "Add a card" }).click();

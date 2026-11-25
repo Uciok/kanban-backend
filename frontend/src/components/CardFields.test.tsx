@@ -1,12 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { KanbanBoard } from "@/components/KanbanBoard";
 import { fakeBackend } from "@/test/fakeBackend";
-
-const renderBoard = async () => {
-  render(<KanbanBoard boardId={1} onLogout={() => {}} />);
-  await screen.findByRole("heading", { name: "Kanban Studio" });
-};
+import { renderBoard } from "@/test/renderBoard";
 
 const openEdit = async (cardId: string, title: string) => {
   const card = screen.getByTestId(`card-${cardId}`);
@@ -16,10 +11,6 @@ const openEdit = async (cardId: string, title: string) => {
 
 const visibleTitles = () =>
   screen.getAllByRole("heading", { level: 4 }).map((heading) => heading.textContent);
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 describe("card fields", () => {
   it("shows priority and labels on cards", async () => {

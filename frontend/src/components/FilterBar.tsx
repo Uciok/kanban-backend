@@ -1,5 +1,14 @@
 import type { ReactNode } from "react";
-import { PRIORITIES, isFilterActive, type CardFilter, type Priority } from "@/lib/kanban";
+import clsx from "clsx";
+import {
+  EMPTY_FILTER,
+  PRIORITIES,
+  PRIORITY_LABELS,
+  isFilterActive,
+  type CardFilter,
+  type Priority,
+} from "@/lib/kanban";
+import { inputClass, secondaryButtonClass } from "@/lib/styles";
 
 type FilterBarProps = {
   // Extra controls shown after the filters (e.g. Add column)
@@ -9,9 +18,6 @@ type FilterBarProps = {
   total: number;
   onChange: (filter: CardFilter) => void;
 };
-
-const inputClass =
-  "rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-base sm:text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]";
 
 export const FilterBar = ({ actions, filter, shown, total, onChange }: FilterBarProps) => {
   const active = isFilterActive(filter);
@@ -23,7 +29,7 @@ export const FilterBar = ({ actions, filter, shown, total, onChange }: FilterBar
         onChange={(event) => onChange({ ...filter, text: event.target.value })}
         aria-label="Search cards"
         placeholder="Search cards and labels"
-        className={`${inputClass} w-full min-w-0 sm:w-auto sm:flex-1 sm:max-w-xs`}
+        className={clsx("w-full min-w-0 sm:w-auto sm:flex-1 sm:max-w-xs", inputClass)}
       />
       <select
         value={filter.priority}
@@ -34,7 +40,7 @@ export const FilterBar = ({ actions, filter, shown, total, onChange }: FilterBar
         <option value="">Any priority</option>
         {PRIORITIES.map((value) => (
           <option key={value} value={value}>
-            {value[0].toUpperCase() + value.slice(1)} priority
+            {PRIORITY_LABELS[value]} priority
           </option>
         ))}
       </select>
@@ -45,8 +51,8 @@ export const FilterBar = ({ actions, filter, shown, total, onChange }: FilterBar
           </span>
           <button
             type="button"
-            onClick={() => onChange({ text: "", priority: "" })}
-            className="rounded-full border border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+            onClick={() => onChange(EMPTY_FILTER)}
+            className={secondaryButtonClass}
           >
             Clear filters
           </button>

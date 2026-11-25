@@ -1,8 +1,9 @@
 import { useState, type KeyboardEvent } from "react";
+import clsx from "clsx";
 import { MAX_CHECKLIST_ITEMS, createId, type ChecklistItem } from "@/lib/kanban";
+import { inputClass } from "@/lib/styles";
 
-const inputClass =
-  "min-w-0 flex-1 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-base sm:text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]";
+const itemInputClass = clsx("min-w-0 flex-1", inputClass);
 const removeClass =
   "rounded-full px-2 py-1 text-xs font-semibold text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]";
 
@@ -54,7 +55,7 @@ export const ChecklistEditor = ({ items, onChange }: ChecklistEditorProps) => {
             onChange={(event) => update(item.id, { text: event.target.value })}
             aria-label="Checklist item"
             maxLength={120}
-            className={inputClass}
+            className={itemInputClass}
           />
           <button
             type="button"
@@ -75,7 +76,7 @@ export const ChecklistEditor = ({ items, onChange }: ChecklistEditorProps) => {
             aria-label="New checklist item"
             placeholder="Add an item"
             maxLength={120}
-            className={inputClass}
+            className={itemInputClass}
           />
           <button
             type="button"

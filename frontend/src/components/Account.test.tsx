@@ -14,7 +14,6 @@ const openAccount = async () => {
 };
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   localStorage.clear();
   sessionStorage.clear();
 });

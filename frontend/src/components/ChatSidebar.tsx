@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import clsx from "clsx";
 import type { BoardData } from "@/lib/kanban";
 import { loadHistory, saveHistory, sendChat, type ChatMessage } from "@/lib/chat";
+import { messageClass, inputClass, secondaryButtonClass } from "@/lib/styles";
 
 type ChatSidebarProps = {
   boardId: number;
@@ -77,7 +78,7 @@ export const ChatSidebar = ({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full border border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
+          className={secondaryButtonClass}
         >
           Close
         </button>
@@ -111,9 +112,7 @@ export const ChatSidebar = ({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3 border-t border-[var(--stroke)] px-6 py-5">
-        {error && (
-          <p className="text-sm font-semibold text-[var(--secondary-purple)]">{error}</p>
-        )}
+        {error && <p className={messageClass}>{error}</p>}
         <textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
@@ -126,7 +125,7 @@ export const ChatSidebar = ({
           aria-label="Message"
           placeholder="Message the assistant"
           rows={3}
-          className="w-full resize-none rounded-xl border border-[var(--stroke)] px-3 py-2 text-base sm:text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+          className={clsx("w-full resize-none", inputClass)}
         />
         <button
           type="submit"

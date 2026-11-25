@@ -1,12 +1,11 @@
 import { useState, type FormEvent } from "react";
+import clsx from "clsx";
 import { login, register } from "@/lib/auth";
+import { messageClass, inputClass } from "@/lib/styles";
 
 type LoginFormProps = {
   onLogin: (username: string) => void;
 };
-
-const inputClass =
-  "w-full rounded-xl border border-[var(--stroke)] px-3 py-2 text-base sm:text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]";
 
 export const LoginForm = ({ onLogin }: LoginFormProps) => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -57,7 +56,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
           aria-label="Username"
           placeholder="Username"
           autoComplete="username"
-          className={inputClass}
+          className={clsx("w-full", inputClass)}
           required
         />
         <input
@@ -67,11 +66,11 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
           aria-label="Password"
           placeholder={isSignUp ? "Password (8+ characters)" : "Password"}
           autoComplete={isSignUp ? "new-password" : "current-password"}
-          className={inputClass}
+          className={clsx("w-full", inputClass)}
           required
         />
         {error && (
-          <p role="alert" className="text-sm font-semibold text-[var(--secondary-purple)]">
+          <p role="alert" className={messageClass}>
             {error}
           </p>
         )}

@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { signInWithFreshBoard } from "./helpers";
+import { dragCardOver, expectBoard, signInWithFreshBoard } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await signInWithFreshBoard(page);
 });
 
 test("loads the kanban board", async ({ page }) => {
-  await expect(page.getByRole("heading", { name: "Kanban Studio" })).toBeVisible();
+  await expectBoard(page);
   await expect(page.locator('[data-testid^="column-"]')).toHaveCount(5);
 });
 
@@ -22,24 +22,7 @@ test("adds a card to a column", async ({ page }) => {
 test("moves a card between columns", async ({ page }) => {
   const card = page.getByTestId("card-card-1");
   const targetColumn = page.getByTestId("column-col-review");
-  // Mouse drags only work on what is in the viewport
-  await card.scrollIntoViewIfNeeded();
-  const cardBox = await card.boundingBox();
-  const columnBox = await targetColumn.boundingBox();
-  if (!cardBox || !columnBox) {
-    throw new Error("Unable to resolve drag coordinates.");
-  }
-
-  await page.mouse.move(
-    cardBox.x + cardBox.width / 2,
-    cardBox.y + cardBox.height / 2
-  );
-  await page.mouse.down();
-  await page.mouse.move(
-    columnBox.x + columnBox.width / 2,
-    columnBox.y + 120,
-    { steps: 12 }
-  );
+  await dragCardOver(page, card, targetColumn);
   await page.mouse.up();
   await expect(targetColumn.getByTestId("card-card-1")).toBeVisible();
 });

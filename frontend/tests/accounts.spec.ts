@@ -1,14 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { signIn, uniqueUsername } from "./helpers";
-
-const signUp = async (page: Page, username: string, password: string) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Create an account" }).click();
-  await page.getByLabel("Username").fill(username);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page.getByRole("heading", { name: "Kanban Studio" })).toBeVisible();
-};
+import { expectBoard, signIn, signUp, uniqueUsername } from "./helpers";
 
 const logOut = async (page: Page) => {
   await page.getByRole("button", { name: "Log out" }).click();
@@ -23,7 +14,7 @@ test("sign up, sign out and sign back in with the new account", async ({ page })
 
   await logOut(page);
   await signIn(page, username, "secret-pass");
-  await expect(page.getByRole("heading", { name: "Kanban Studio" })).toBeVisible();
+  await expectBoard(page);
 });
 
 test("taken usernames are rejected", async ({ page }) => {
@@ -45,7 +36,7 @@ test("each user sees only their own boards", async ({ page }) => {
 
   await logOut(page);
   await signIn(page);
-  await expect(page.getByRole("heading", { name: "Kanban Studio" })).toBeVisible();
+  await expectBoard(page);
   await expect(page.getByRole("option", { name: "Bob's private board" })).not.toBeAttached();
 });
 
@@ -64,7 +55,7 @@ test("change password, then delete the account", async ({ page }) => {
   await signIn(page, username, "first-pass");
   await expect(page.getByText("Invalid username or password")).toBeVisible();
   await signIn(page, username, "second-pass");
-  await expect(page.getByRole("heading", { name: "Kanban Studio" })).toBeVisible();
+  await expectBoard(page);
 
   await page.getByRole("button", { name: "Account" }).click();
   await page.getByLabel("Password to confirm").fill("second-pass");

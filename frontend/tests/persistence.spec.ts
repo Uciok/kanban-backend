@@ -1,8 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { nextSave, signIn, signInWithFreshBoard } from "./helpers";
-
-const expectBoard = (page: Page) =>
-  expect(page.getByRole("heading", { name: "Kanban Studio" })).toBeVisible();
+import { expect, test } from "@playwright/test";
+import { dragCardOver, expectBoard, nextSave, signIn, signInWithFreshBoard } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await signInWithFreshBoard(page);
@@ -23,13 +20,7 @@ test("deleted card stays deleted after logout and sign in", async ({ page }) => 
 test("moved card stays in its new column after reload", async ({ page }) => {
   const card = page.getByTestId("card-card-1");
   const target = page.getByTestId("column-col-review");
-  // Mouse drags only work on what is in the viewport
-  await card.scrollIntoViewIfNeeded();
-  const cardBox = (await card.boundingBox())!;
-  const targetBox = (await target.boundingBox())!;
-  await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + 120, { steps: 12 });
+  await dragCardOver(page, card, target);
   const save = nextSave(page);
   await page.mouse.up();
   await save;

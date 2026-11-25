@@ -9,10 +9,6 @@ const signIn = async (username: string, password: string) => {
   await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
 };
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
 describe("App", () => {
   it("shows the login form when signed out", async () => {
     fakeBackend({ signedIn: false });

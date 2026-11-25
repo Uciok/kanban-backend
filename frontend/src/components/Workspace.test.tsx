@@ -22,7 +22,6 @@ const createBoard = async (name: string) => {
 };
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   localStorage.clear();
   sessionStorage.clear();
 });

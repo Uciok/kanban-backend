@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
+import clsx from "clsx";
 import type { BoardSummary } from "@/lib/api";
+import { messageClass, inputClass, primaryButtonClass, secondaryButtonClass } from "@/lib/styles";
 
 type BoardBarProps = {
   boards: BoardSummary[];
@@ -13,13 +15,6 @@ type BoardBarProps = {
 };
 
 type Mode = "idle" | "create" | "rename" | "delete";
-
-const buttonClass =
-  "rounded-full border border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]";
-const primaryClass =
-  "rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110";
-const inputClass =
-  "min-w-0 flex-1 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-base sm:text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]";
 
 export const BoardBar = ({
   boards,
@@ -65,13 +60,13 @@ export const BoardBar = ({
             placeholder="Board name"
             maxLength={80}
             autoFocus
-            className={inputClass}
+            className={clsx("min-w-0 flex-1", inputClass)}
             required
           />
-          <button type="submit" className={primaryClass}>
+          <button type="submit" className={primaryButtonClass}>
             {mode === "create" ? "Create" : "Save"}
           </button>
-          <button type="button" onClick={() => setMode("idle")} className={buttonClass}>
+          <button type="button" onClick={() => setMode("idle")} className={secondaryButtonClass}>
             Cancel
           </button>
         </form>
@@ -86,11 +81,11 @@ export const BoardBar = ({
               setMode("idle");
               onDelete();
             }}
-            className={primaryClass}
+            className={primaryButtonClass}
           >
             Delete board
           </button>
-          <button type="button" onClick={() => setMode("idle")} className={buttonClass}>
+          <button type="button" onClick={() => setMode("idle")} className={secondaryButtonClass}>
             Keep it
           </button>
         </div>
@@ -113,12 +108,12 @@ export const BoardBar = ({
               ))}
             </select>
           </label>
-          <button type="button" onClick={() => open("create")} aria-label="New board" className={buttonClass}>
+          <button type="button" onClick={() => open("create")} aria-label="New board" className={secondaryButtonClass}>
             {/* Short label on phones so the buttons fit on one row */}
             <span className="sm:hidden">New</span>
             <span className="hidden sm:inline">New board</span>
           </button>
-          <button type="button" onClick={() => open("rename")} className={buttonClass}>
+          <button type="button" onClick={() => open("rename")} className={secondaryButtonClass}>
             Rename
           </button>
           <button
@@ -126,16 +121,16 @@ export const BoardBar = ({
             onClick={() => open("delete")}
             disabled={boards.length < 2}
             title={boards.length < 2 ? "You cannot delete your only board" : undefined}
-            className={`${buttonClass} disabled:opacity-40`}
+            className={clsx(secondaryButtonClass, "disabled:opacity-40")}
           >
             Delete
           </button>
-          <button type="button" onClick={onAccount} className={`${buttonClass} sm:ml-auto`}>
+          <button type="button" onClick={onAccount} className={clsx(secondaryButtonClass, "sm:ml-auto")}>
             Account
           </button>
         </div>
       )}
-      {error && <p className="text-sm font-semibold text-[var(--secondary-purple)]">{error}</p>}
+      {error && <p className={messageClass}>{error}</p>}
     </div>
   );
 };

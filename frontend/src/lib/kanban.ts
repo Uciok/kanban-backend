@@ -120,6 +120,7 @@ export const createId = (prefix: string) => {
 };
 
 export const PRIORITIES: Priority[] = ["high", "medium", "low"];
+export const PRIORITY_LABELS: Record<Priority, string> = { high: "High", medium: "Medium", low: "Low" };
 export const MAX_LABELS = 8;
 export const MAX_COLUMNS = 12;
 export const MAX_CHECKLIST_ITEMS = 20;
@@ -185,12 +186,6 @@ export const boardStats = (board: BoardData, today: string): BoardStats => {
     highPriority: cards.filter((card) => card.priority === "high").length,
   };
 };
-
-// "2/5" style progress, or null for a card without a checklist
-export const checklistProgress = (card: Card) =>
-  card.checklist.length === 0
-    ? null
-    : { done: card.checklist.filter((item) => item.done).length, total: card.checklist.length };
 
 // "2026-11-25 10:00:00" (UTC, as SQLite stores it) -> "5 min ago"
 export const relativeTime = (createdAt: string, now = new Date()) => {

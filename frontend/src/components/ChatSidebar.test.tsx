@@ -1,14 +1,8 @@
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { KanbanBoard } from "@/components/KanbanBoard";
 import { cloneBoard } from "@/test/board";
 import { fakeBackend, jsonResponse } from "@/test/fakeBackend";
-
-const renderBoard = async () => {
-  const view = render(<KanbanBoard boardId={1} onLogout={() => {}} />);
-  await screen.findByRole("heading", { name: "Kanban Studio" });
-  return view;
-};
+import { renderBoard } from "@/test/renderBoard";
 
 const openChat = () => userEvent.click(screen.getByRole("button", { name: "AI chat" }));
 
@@ -18,7 +12,6 @@ const send = async (text: string) => {
 };
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   sessionStorage.clear();
 });
 

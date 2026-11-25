@@ -20,10 +20,6 @@ const controlledFetch = () => {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
 describe("saveBoard", () => {
   it("sends the next save only after the previous one finished", async () => {
     const requests = controlledFetch();

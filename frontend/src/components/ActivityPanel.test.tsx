@@ -1,16 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { KanbanBoard } from "@/components/KanbanBoard";
 import { fakeBackend } from "@/test/fakeBackend";
-
-const renderBoard = async () => {
-  render(<KanbanBoard boardId={1} onLogout={() => {}} />);
-  await screen.findByRole("heading", { name: "Kanban Studio" });
-};
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
+import { renderBoard } from "@/test/renderBoard";
 
 describe("activity panel", () => {
   it("lists the board's recent changes, newest first as given", async () => {

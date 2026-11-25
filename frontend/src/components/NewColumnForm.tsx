@@ -1,11 +1,10 @@
 import { useState, type FormEvent } from "react";
+import clsx from "clsx";
+import { inputClass, primaryButtonClass, secondaryButtonClass } from "@/lib/styles";
 
 type NewColumnFormProps = {
   onAdd: (title: string) => void;
 };
-
-const buttonClass =
-  "rounded-full border border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide transition";
 
 export const NewColumnForm = ({ onAdd }: NewColumnFormProps) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -30,7 +29,7 @@ export const NewColumnForm = ({ onAdd }: NewColumnFormProps) => {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className={`${buttonClass} border-dashed text-[var(--primary-blue)] hover:border-[var(--primary-blue)]`}
+        className="rounded-full border border-dashed border-[var(--stroke)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--primary-blue)] transition hover:border-[var(--primary-blue)]"
       >
         Add column
       </button>
@@ -46,12 +45,12 @@ export const NewColumnForm = ({ onAdd }: NewColumnFormProps) => {
         maxLength={60}
         autoFocus
         required
-        className="min-w-0 rounded-xl border border-[var(--stroke)] bg-white px-3 py-2 text-base sm:text-sm text-[var(--navy-dark)] outline-none transition focus:border-[var(--primary-blue)]"
+        className={clsx("min-w-0", inputClass)}
       />
-      <button type="submit" className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110">
+      <button type="submit" className={primaryButtonClass}>
         Add
       </button>
-      <button type="button" onClick={close} className={`${buttonClass} text-[var(--gray-text)] hover:text-[var(--navy-dark)]`}>
+      <button type="button" onClick={close} className={secondaryButtonClass}>
         Cancel
       </button>
     </form>

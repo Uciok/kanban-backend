@@ -1,4 +1,4 @@
-import { errorMessage, savesDone } from "@/lib/api";
+import { errorMessage, jsonRequest, savesDone } from "@/lib/api";
 import type { BoardData } from "@/lib/kanban";
 
 export type ChatMessage = {
@@ -34,11 +34,7 @@ export const sendChat = async (
 ): Promise<ChatResponse> => {
   // The AI works on the stored board, so let the latest edits reach it first
   await savesDone();
-  const response = await fetch(`/api/boards/${boardId}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, history }),
-  });
+  const response = await fetch(`/api/boards/${boardId}/chat`, jsonRequest("POST", { message, history }));
   if (!response.ok) {
     throw new Error(await errorMessage(response, "Something went wrong. Please try again."));
   }

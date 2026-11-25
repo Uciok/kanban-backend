@@ -33,6 +33,10 @@ import {
   type Card,
   type CardFilter,
 } from "@/lib/kanban";
+import { primaryButtonClass } from "@/lib/styles";
+
+const headerButtonClass =
+  "rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]";
 
 type KanbanBoardProps = {
   boardId: number;
@@ -177,10 +181,11 @@ export const KanbanBoard = ({ boardId, onLogout, toolbar }: KanbanBoardProps) =>
 
   const activeCard = activeCardId ? board.cards[activeCardId] : null;
   // Cards hidden by the filter stay in the board; only the shown ones are rendered
-  const visibleCards = (cardIds: string[]) =>
-    cardIds.map((cardId) => board.cards[cardId]).filter((card) => matchesFilter(card, filter));
+  const visibleCards = board.columns.map((column) =>
+    column.cardIds.map((cardId) => board.cards[cardId]).filter((card) => matchesFilter(card, filter))
+  );
+  const shownCards = visibleCards.reduce((sum, cards) => sum + cards.length, 0);
   const totalCards = Object.keys(board.cards).length;
-  const shownCards = board.columns.reduce((sum, column) => sum + visibleCards(column.cardIds).length, 0);
 
   return (
     // On wide screens the board makes room for the open chat instead of being covered
@@ -200,25 +205,13 @@ export const KanbanBoard = ({ boardId, onLogout, toolbar }: KanbanBoardProps) =>
               </h1>
             </div>
             <div className="flex items-center gap-2 lg:items-start lg:gap-4">
-              <button
-                type="button"
-                onClick={() => setIsChatOpen(true)}
-                className="rounded-full bg-[var(--secondary-purple)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
-              >
+              <button type="button" onClick={() => setIsChatOpen(true)} className={primaryButtonClass}>
                 AI chat
               </button>
-              <button
-                type="button"
-                onClick={() => setIsActivityOpen(true)}
-                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
-              >
+              <button type="button" onClick={() => setIsActivityOpen(true)} className={headerButtonClass}>
                 Activity
               </button>
-              <button
-                type="button"
-                onClick={onLogout}
-                className="rounded-full border border-[var(--stroke)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--gray-text)] transition hover:text-[var(--navy-dark)]"
-              >
+              <button type="button" onClick={onLogout} className={headerButtonClass}>
                 Log out
               </button>
             </div>
@@ -256,7 +249,7 @@ export const KanbanBoard = ({ boardId, onLogout, toolbar }: KanbanBoardProps) =>
                   canDelete={column.cardIds.length === 0 && board.columns.length > 1}
                   onMove={handleMoveColumn}
                   onDelete={handleDeleteColumn}
-                  cards={visibleCards(column.cardIds)}
+                  cards={visibleCards[index]}
                   onRename={handleRenameColumn}
                   onRenameDone={handleRenameDone}
                   onAddCard={handleAddCard}

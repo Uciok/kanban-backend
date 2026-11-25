@@ -1,12 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { KanbanBoard } from "@/components/KanbanBoard";
 import { fakeBackend } from "@/test/fakeBackend";
-
-const renderBoard = async () => {
-  render(<KanbanBoard boardId={1} onLogout={() => {}} />);
-  await screen.findByRole("heading", { name: "Kanban Studio" });
-};
+import { renderBoard } from "@/test/renderBoard";
 
 const columnTitles = () =>
   screen.getAllByLabelText("Column title").map((input) => (input as HTMLInputElement).value);
@@ -16,10 +11,6 @@ const addColumn = async (title: string) => {
   await userEvent.type(screen.getByLabelText("New column title"), title);
   await userEvent.click(screen.getByRole("button", { name: "Add" }));
 };
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 describe("columns", () => {
   it("adds a column at the end", async () => {
