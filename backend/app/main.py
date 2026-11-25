@@ -34,6 +34,16 @@ class Credentials(BaseModel):
     password: str
 
 
+class ChatRequest(BaseModel):
+    message: str
+    history: list[ai.Message] = []
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    board: Board | None
+
+
 def current_user(request: Request) -> str:
     username = request.session.get("username")
     if not username:
@@ -79,6 +89,20 @@ def write_board(board: Board, username: str = Depends(current_user)) -> Board:
 @app.post("/api/ai/test")
 def ai_test(username: str = Depends(current_user)):
     return {"answer": ai.ask("What is 2+2? Reply with just the number.")}
+
+
+@app.post("/api/chat")
+def chat(request: ChatRequest, username: str = Depends(current_user)) -> ChatResponse:
+    board = Board.model_validate(db.get_board(username))
+    try:
+        result = ai.chat(board, request.history, request.message)
+        if result.board is None:
+            return ChatResponse(reply=result.reply, board=None)
+        updated = ai.apply_update(board, result.board)
+    except ai.AIError as error:
+        raise HTTPException(status_code=502, detail=str(error))
+    db.save_board(username, updated.model_dump())
+    return ChatResponse(reply=result.reply, board=updated)
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True, check_dir=False), name="static")

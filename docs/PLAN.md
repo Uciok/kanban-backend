@@ -2,30 +2,63 @@
 
 ## Decisions
 
-- Project root: this repo. Secrets in `.env` (git-ignored): `OPENROUTER_API_KEY`
-- One Docker container on port 8000. FastAPI serves the API under `/api` and the static Next export at `/`
-- Auth: hardcoded `user` / `password`, checked by the backend, session kept in a signed cookie (Starlette `SessionMiddleware`). All `/api` routes except login require it
-- Database: SQLite at `data/app.db` (Docker volume), created on startup if missing. Each user's board stored as one JSON blob in the `BoardData` shape the frontend already uses
-- AI: OpenRouter via the `openai` SDK, model `openai/gpt-oss-120b`. Structured output returns `{ reply, board | null }`, where `board` is the full updated board. AI may only change cards; column ids, titles and order must stay the same
-- Chat history lives in the browser and is sent with each request
-- Tests: pytest for backend (AI mocked), Vitest for frontend units, Playwright e2e against the running container
+General
+- Project root is this repo. Secrets in `.env` (git-ignored): `OPENROUTER_API_KEY`, optional `OPENROUTER_FALLBACK_MODELS`, optional `SESSION_SECRET`
+- Git: GitHub repo `Uciok/kanban-backend`, branch `main` (local branch `kanban-backend` tracks it). Commit messages start with "Kanban with backend:"
+
+Runtime
+- One Docker container `pm-app` on port 8000. Multi-stage Dockerfile: Node builds the Next static export (`frontend/out`), copied to `/app/static` in the Python (uv) image. FastAPI serves the API under `/api` and the static files at `/` (mounted last so API routes win). `backend/static/` is not in git
+- Data in the `pm-data` Docker volume at `/app/data`; `stop.sh` keeps it
+
+Auth
+- Hardcoded `user` / `password`, checked by the backend. Session in a signed cookie (Starlette `SessionMiddleware`). All `/api` routes except health and login require it (`Depends(current_user)`)
+- `SESSION_SECRET` from env, random per start if unset, so sessions end when the container restarts. Acceptable for the MVP
+
+Database
+- SQLite at `data/app.db` (`DB_PATH` overrides), created with its tables on startup. Each user's board stored as one JSON blob in the frontend's `BoardData` shape. Details in `docs/DATABASE.md`
+- Default board for new users lives in `backend/app/default_board.json` (single source; the frontend test fixture `src/test/board.ts` mirrors it)
+
+Board saving
+- The frontend saves the full board (`PUT /api/board`) after every change; column renames save on blur, not per keystroke
+- Saves are fire-and-forget with last write wins. No retry or error display for failed saves (MVP)
+
+AI
+- OpenRouter via the `openai` SDK, model `openai/gpt-oss-120b`, then `OPENROUTER_FALLBACK_MODELS` in order as OpenRouter's `models` fallback list
+- Chat uses strict structured outputs: `{ reply, board | null }`, `board` being the full updated board with cards as a list (strict schemas do not allow free-form maps); the backend converts it back. `provider.require_parameters` limits routing (fallbacks included) to providers that support structured outputs
+- AI may only change cards. The backend rejects updates that change column ids, titles or order, or where a card is not in exactly one column (502, board unchanged)
+- Chat history lives in the browser and is sent with each request; only `user` and `assistant` roles are accepted
+
+Testing
+- Backend: pytest with `TestClient`, a temp database per test, AI always mocked
+- Frontend unit: Vitest + Testing Library; `src/test/fakeBackend.ts` stubs `fetch` with an in-memory API
+- E2E: Playwright against the running container (`localhost:8000`). Tests share the real database, so each resets the board first (`signInWithFreshBoard`) and they run with one worker. Running them resets your board
 - Coverage: aim for 80% (backend via `pytest-cov`, frontend via `vitest --coverage`) where it comes naturally. Only write tests that check real behavior; never add tests just to raise the number. Falling short of 80% is fine
 
-## Target layout
+Frontend details worth knowing
+- Cards can be edited inline (Edit button). While editing, the card does not get dnd-kit's drag attributes, otherwise its `aria-disabled` disables the inputs
+- Cards have `role="button"` from dnd-kit with the child button labels in their accessible name, so tests match buttons by exact name. Next.js adds a hidden route announcer with `role="alert"`, so tests do not select by that role
+
+## Layout
 
 ```
-Dockerfile              multi-stage: node builds frontend, python (uv) runs backend
+Dockerfile, .dockerignore   multi-stage: node builds frontend, python (uv) runs backend
+README.md
 backend/
   pyproject.toml, uv.lock
-  app/main.py           FastAPI app, routes, static mount
-  app/db.py             SQLite access
-  app/ai.py             OpenRouter calls
+  app/main.py               FastAPI app, routes, static mount
+  app/db.py                 SQLite access
+  app/models.py             Pydantic Board / Column / Card
+  app/ai.py                 OpenRouter calls, chat structured output, update validation
+  app/default_board.json    board for new users
   tests/
-frontend/               Next.js (static export)
+frontend/                   Next.js (static export); see frontend/AGENTS.md
+  src/lib/api.ts, auth.ts   API calls
+  tests/                    Playwright e2e
 scripts/
-  start.sh, stop.sh     Mac / Linux
-  start.ps1, stop.ps1   Windows
+  start.sh, stop.sh         Mac / Linux
+  start.ps1, stop.ps1       Windows
 docs/
+  PLAN.md, DATABASE.md
 ```
 
 ---
@@ -74,7 +107,7 @@ Success: `localhost:8000` shows the Kanban board from the container; all unit an
 - [x] Backend tests: valid login, invalid login (401), me with and without session, logout clears session
 - [x] Unit tests: login form renders, error on bad credentials, logout
 - [x] E2E: must log in to see the board; bad credentials show error; logout returns to login; session survives reload
-- [ ] User verifies sign in / log out at localhost:8000
+- [x] User verifies sign in / log out at localhost:8000
 
 Success: board is only reachable after login; all tests pass.
 
@@ -83,7 +116,7 @@ Success: board is only reachable after login; all tests pass.
 - [x] Write `docs/DATABASE.md` with schema and approach:
   - `users (id INTEGER PK, username TEXT UNIQUE, created_at)`
   - `boards (id INTEGER PK, user_id INTEGER UNIQUE FK, data TEXT JSON, updated_at)`
-  - `data` holds `BoardData` JSON; new users get the default board (the current `initialData`)
+  - `data` holds `BoardData` JSON; new users get the default board (`backend/app/default_board.json`, formerly the frontend's `initialData`)
   - `user` is seeded on startup; passwords stay hardcoded for the MVP
 - [x] Example board JSON in the doc
 - [x] User sign-off
@@ -104,7 +137,7 @@ Success: all backend tests pass; data survives container restart (volume).
 ## Part 7: Frontend + Backend
 
 - [x] `src/lib/api.ts`: `getBoard`, `saveBoard`
-- [x] Board loads from the API after login (loading state while fetching)
+- [x] Board loads from the API after login (renders nothing until loaded; no spinner)
 - [x] Every change (move, add, edit, delete) saves the full board; column rename saves on blur
 - [x] Remove `initialData` from the frontend (default board now comes from the backend)
 - [x] Unit tests with `fetch` mocked: loads board, saves after each kind of change
@@ -125,16 +158,18 @@ Success: real call returns a correct answer from inside the container.
 
 ## Part 9: AI with the Kanban board
 
-- [ ] `POST /api/chat` with `{ message, history: [{ role, content }] }`
-- [ ] System prompt explains the board format and the rules (cards only; keep column ids, titles and order)
-- [ ] Send current board JSON + history + message; request structured output `{ reply: string, board: BoardData | null }`
-- [ ] If `board` is returned: validate it, check columns are unchanged, save it. Return `{ reply, board }`
-- [ ] Tests (AI mocked): reply only leaves board unchanged; board update is saved; update that changes columns is rejected and board stays as it was; invalid model output returns a clear error; history is passed through
+- [x] `POST /api/chat` with `{ message, history: [{ role, content }] }`
+- [x] System prompt explains the board format and the rules (cards only; keep column ids, titles and order)
+- [x] Send current board JSON + history + message; request structured output `{ reply: string, board: BoardData | null }`
+- [x] If `board` is returned: validate it, check columns are unchanged and every card is in exactly one column, save it. Return `{ reply, board }`; invalid updates return 502 and the board is not changed
+- [x] The AI sends cards as a list (strict structured outputs do not allow free-form maps); the backend converts it to the `cards` map
+- [x] Requests set OpenRouter `provider.require_parameters` so only providers that support structured outputs are used
+- [x] Tests (AI mocked): reply only leaves board unchanged; board update is saved; update that changes columns is rejected and board stays as it was; invalid model output returns a clear error; history is passed through
 - [ ] Manual check with the real model: create, edit and move cards via chat
 
 Success: the real model can create, edit and move one or more cards; all tests pass.
 
-Risk: not every OpenRouter provider for `gpt-oss-120b` supports structured outputs. If needed, set provider routing to require it (`require_parameters`). Confirm with evidence in Part 8/9.
+Risk: not every OpenRouter provider (or fallback model) supports structured outputs. Mitigated with `provider.require_parameters`; still to be confirmed by the manual check above.
 
 ## Part 10: AI chat sidebar
 
